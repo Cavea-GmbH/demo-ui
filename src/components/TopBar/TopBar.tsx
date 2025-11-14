@@ -23,9 +23,6 @@ interface TopBarProps {
 
 export default function TopBar({
   isConnected,
-  isLoading,
-  pollingEnabled,
-  onPollingToggle,
   providerCount,
   trackableCount,
   fenceCount,
