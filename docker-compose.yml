@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  demo-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_OMLOX_API_URL=${OMLOX_API_URL:-http://127.0.0.1/v2}
+    restart: unless-stopped
+    networks:
+      - demo-network
+
+networks:
+  demo-network:
+    driver: bridge
+
