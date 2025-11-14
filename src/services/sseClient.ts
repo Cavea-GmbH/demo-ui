@@ -4,7 +4,9 @@
 
 import { locationPushReceiver } from './locationPushReceiver';
 
-const PROXY_SERVER_URL = import.meta.env.VITE_PROXY_SERVER_URL || 'http://localhost:3001';
+// Use relative URL for SSE endpoint - works in both dev and production
+// Nginx proxies /events to the Node.js backend on port 3001
+const SSE_ENDPOINT = '/events';
 
 class SSEClient {
   private eventSource: EventSource | null = null;
@@ -17,7 +19,7 @@ class SSEClient {
       this.eventSource.close();
     }
 
-    const url = `${PROXY_SERVER_URL}/events`;
+    const url = SSE_ENDPOINT;
     console.log(`🔌 Connecting to SSE server: ${url}`);
 
     try {
@@ -55,8 +57,8 @@ class SSEClient {
           } else {
             console.error('❌ Max reconnection attempts reached. Please check:');
             console.error('   1. Is the proxy server running? (npm run dev:proxy)');
-            console.error(`   2. Is it accessible at ${PROXY_SERVER_URL}?`);
-            console.error('   3. Check browser console for CORS errors');
+            console.error(`   2. Is ${SSE_ENDPOINT} accessible and proxied correctly?`);
+            console.error('   3. Check browser console for CORS or network errors');
           }
         }
       };

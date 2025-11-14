@@ -37,6 +37,8 @@ jobs:
           # Build metadata
           echo "VITE_BUILD_NUMBER=${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> .env
           echo "VITE_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
+          # Control initial demo data loading (true for dev, false for prod)
+          echo "VITE_LOAD_INITIAL_DATA=true" >> .env
 
       - name: Login to Amazon ECR
         id: login-ecr
