@@ -39,9 +39,10 @@ A lightweight, real-time demo UI for showcasing indoor Real-Time Location System
 - **Axios** - HTTP client for API calls
 
 ### Backend
-- **Node.js** + **Express** - Proxy server for receiving and forwarding location updates
+- **Node.js** + **Express** - Standalone demo server with in-memory storage
 - **Server-Sent Events (SSE)** - Real-time push updates to frontend
-- **Cors** - Cross-origin resource sharing support
+- **In-Memory Storage** - No external database required (Maps for providers, trackables, locations, fences)
+- **Omlox API** - Compliant REST endpoints for CRUD operations
 
 ### Infrastructure
 - **Docker** - Multi-stage containerized build
@@ -70,12 +71,26 @@ npm install
 Create a `.env` file in the project root:
 
 ```env
+# Frontend Configuration (embedded at build time)
+# ================================================
+
 # Control whether to load initial demo data (trackables & providers)
 VITE_LOAD_INITIAL_DATA=true
 
-# Omlox API URL (not actively used with current proxy setup)
-VITE_OMLOX_API_URL=not_used
+# Omlox API URL - frontend makes requests to this URL (proxied via /api/)
+VITE_OMLOX_API_URL=/api
+
+
+# Backend Proxy Configuration (runtime environment variables)
+# ============================================================
+
+# Proxy server port (default: 3001)
+# PROXY_PORT=3001
 ```
+
+**Note**: 
+- `VITE_*` variables are embedded into the frontend build at compile time
+- The backend is **standalone** - it maintains all data in-memory (no external Hub needed)
 
 ### 3. Start Development Servers
 
@@ -242,12 +257,20 @@ aws apprunner update-service \
 
 ### Environment Variables
 
+#### Frontend (Build-time - `VITE_*`)
+
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `VITE_LOAD_INITIAL_DATA` | Load demo trackables/providers on startup | `true` | No |
-| `VITE_OMLOX_API_URL` | Omlox API URL (not actively used) | `not_used` | No |
+| `VITE_OMLOX_API_URL` | Omlox API endpoint for frontend (proxied via `/api/`) | `/api` | Yes |
 | `VITE_BUILD_NUMBER` | Build number (auto-generated in CI/CD) | - | No |
 | `VITE_BUILD_TIME` | Build timestamp (auto-generated in CI/CD) | - | No |
+
+#### Backend (Runtime - Node.js Server)
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `PROXY_PORT` | Port for the standalone demo server | `3001` | No |
 
 ### Floor Plan Configuration
 
@@ -368,13 +391,32 @@ The proxy server (`server.js`) exposes these endpoints to receive location data:
 }
 ```
 
-### CRUD Endpoints (Planned)
+### CRUD Endpoints (In-Memory Storage)
 
-The Omlox API client (`omloxApi.ts`) includes methods for:
-- `createLocationProvider()`, `updateLocationProvider()`, `deleteLocationProvider()`
-- `createTrackable()`, `updateTrackable()`, `deleteTrackable()`
+The standalone demo server maintains **in-memory storage** and exposes Omlox-compliant API endpoints:
 
-Currently, CRUD operations are managed in-memory via UI. Integration with a real Omlox Hub API can be added.
+**Providers:**
+- `GET /api/providers/summary` - Get all providers
+- `GET /api/providers/{id}` - Get provider by ID
+- `POST /api/providers` - Create provider
+- `PUT /api/providers/{id}` - Update provider
+- `DELETE /api/providers/{id}` - Delete provider
+- `GET /api/providers/{id}/location` - Get provider location
+- `GET /api/providers/locations` - Get all provider locations
+
+**Trackables:**
+- `GET /api/trackables/summary` - Get all trackables
+- `GET /api/trackables/{id}` - Get trackable by ID
+- `POST /api/trackables` - Create trackable
+- `PUT /api/trackables/{id}` - Update trackable
+- `DELETE /api/trackables/{id}` - Delete trackable
+- `GET /api/trackables/{id}/location` - Get trackable location
+
+**Fences:**
+- `GET /api/fences/summary` - Get all fences
+- `POST /api/fences` - Create fence
+
+**Auto-creation**: When you send a location update for a non-existent provider or trackable, it will be automatically created.
 
 ### Server-Sent Events (SSE)
 

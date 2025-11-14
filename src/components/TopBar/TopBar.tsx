@@ -51,7 +51,7 @@ export default function TopBar({
     <AppBar position="static" elevation={1} sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>
       <Toolbar sx={{ gap: 2, minHeight: '64px !important' }}>
         <Typography variant="h6" component="div" sx={{ flexGrow: 0, mr: 3, fontWeight: 600 }}>
-          Omlox RTLS Demo
+          Cavea RTLS Demo
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
