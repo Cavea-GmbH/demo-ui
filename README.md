@@ -121,7 +121,7 @@ Send location updates via the proxy server using Postman, cURL, or any HTTP clie
 
 ```bash
 # Provider location (local coordinates)
-curl -X POST http://localhost:3001/api/providers/0080E126/location \
+curl -X PUT http://localhost:3001/api/providers/0080E126/location \
   -H "Content-Type: application/json" \
   -d '{
     "position": { "type": "Point", "coordinates": [25, 15] },
@@ -135,7 +135,7 @@ curl -X POST http://localhost:3001/api/providers/0080E126/location \
   }'
 
 # Provider location (WGS84 coordinates)
-curl -X POST http://localhost:3001/api/providers/0080E128/location \
+curl -X PUT http://localhost:3001/api/providers/0080E128/location \
   -H "Content-Type: application/json" \
   -d '{
     "position": { "type": "Point", "coordinates": [7.81600, 48.130286] },
@@ -149,7 +149,7 @@ curl -X POST http://localhost:3001/api/providers/0080E128/location \
   }'
 
 # Trackable location
-curl -X POST http://localhost:3001/api/trackables/550e8400-e29b-41d4-a716-446655440001/location \
+curl -X PUT http://localhost:3001/api/trackables/550e8400-e29b-41d4-a716-446655440001/location \
   -H "Content-Type: application/json" \
   -d '{
     "position": { "type": "Point", "coordinates": [30, 20] },
@@ -366,12 +366,12 @@ demo-ui/
 
 ## API Integration
 
-### Location Update Endpoints (POST)
+### Location Update Endpoints (PUT)
 
-The proxy server (`server.js`) exposes these endpoints to receive location data:
+The demo server (`server.js`) exposes these endpoints to receive location data:
 
-- `POST /api/providers/{provider_id}/location` - Update provider location
-- `POST /api/trackables/{trackable_id}/location` - Update trackable location
+- `PUT /api/providers/{provider_id}/location` - Update provider location (Omlox spec)
+- `PUT /api/trackables/{trackable_id}/location` - Update trackable location (demo extension)
 
 **Request Body** (Omlox `Location` schema):
 

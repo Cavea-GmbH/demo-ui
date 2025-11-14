@@ -42,8 +42,8 @@ app.get('/events', (req, res) => {
   });
 });
 
-// Endpoint to receive provider location updates from Postman
-app.post('/api/providers/:providerId/location', (req, res) => {
+// PUT /api/providers/:providerId/location - Update provider location (Omlox API)
+app.put('/api/providers/:providerId/location', (req, res) => {
   const { providerId: urlProviderId } = req.params;
   const location = req.body;
 
@@ -104,8 +104,8 @@ app.post('/api/providers/:providerId/location', (req, res) => {
   res.status(204).send();
 });
 
-// Endpoint to receive trackable location updates from Postman
-app.post('/api/trackables/:trackableId/location', (req, res) => {
+// PUT /api/trackables/:trackableId/location - Update trackable location (Demo extension - not in Omlox spec)
+app.put('/api/trackables/:trackableId/location', (req, res) => {
   const { trackableId: urlTrackableId } = req.params;
   const location = req.body;
 
@@ -397,8 +397,8 @@ const PORT = process.env.PROXY_PORT || 3001;
 app.listen(PORT, () => {
   console.log(`\n📍 Standalone Demo Server running on http://localhost:${PORT}`);
   console.log(`\n📡 Endpoints:`);
-  console.log(`   POST   /api/providers/:providerId/location  - Update provider location`);
-  console.log(`   POST   /api/trackables/:trackableId/location - Update trackable location`);
+  console.log(`   PUT    /api/providers/:providerId/location  - Update provider location`);
+  console.log(`   PUT    /api/trackables/:trackableId/location - Update trackable location (demo extension)`);
   console.log(`   GET    /api/providers/summary               - Get all providers`);
   console.log(`   GET    /api/trackables/summary              - Get all trackables`);
   console.log(`   GET    /api/fences/summary                  - Get all fences`);
