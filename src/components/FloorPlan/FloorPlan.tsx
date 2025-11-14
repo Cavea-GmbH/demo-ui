@@ -36,13 +36,17 @@ export default function FloorPlan({
   const [tooltip, setTooltip] = useState<{
     x: number;
     y: number;
-    localX: number;
-    localY: number;
-    lon: number;
-    lat: number;
+    localX?: number;
+    localY?: number;
+    lon?: number;
+    lat?: number;
     entityName?: string;
     entityType?: string;
+    fenceCoordinates?: string;
   } | null>(null);
+
+  // Selected fence for showing point labels
+  const [selectedFenceId, setSelectedFenceId] = useState<string | null>(null);
 
   // Padding around the floor plan (in SVG pixels)
   const padding = 20;
@@ -107,6 +111,7 @@ export default function FloorPlan({
   // Hide tooltip on regular click or when mouse leaves
   const handleClick = () => {
     setTooltip(null);
+    setSelectedFenceId(null);
   };
 
   // Handle click on provider/trackable icon
@@ -126,6 +131,34 @@ export default function FloorPlan({
       lat,
       entityName,
       entityType,
+    });
+  };
+
+  // Handle click on fence
+  const handleFenceClick = (fence: Fence, screenX: number, screenY: number) => {
+    let coordinatesStr = '';
+    
+    if (fence.region.type === 'Polygon') {
+      // Format polygon coordinates
+      const ring = fence.region.coordinates[0];
+      coordinatesStr = ring
+        .map((coord, idx) => `Point ${idx + 1}: [${coord[0]}, ${coord[1]}]m`)
+        .join('\n');
+    } else if (fence.region.type === 'Point' && fence.radius) {
+      // Format circular fence
+      const [x, y] = fence.region.coordinates as [number, number];
+      coordinatesStr = `Center: [${x}, ${y}]m\nRadius: ${fence.radius}m`;
+    }
+
+    // Set selected fence to show point labels
+    setSelectedFenceId(fence.id);
+
+    setTooltip({
+      x: screenX,
+      y: screenY,
+      entityName: fence.name || fence.id,
+      entityType: fence.region.type === 'Polygon' ? 'Polygon Fence' : 'Circular Fence',
+      fenceCoordinates: coordinatesStr,
     });
   };
 
@@ -272,6 +305,8 @@ export default function FloorPlan({
               events={fenceEvents}
               showProviders={showProviders}
               showTrackables={showTrackables}
+              onFenceClick={handleFenceClick}
+              selectedFenceId={selectedFenceId}
             />
           )}
 
@@ -315,18 +350,31 @@ export default function FloorPlan({
               {tooltip.entityType}
             </Typography>
           )}
-          <Typography variant="caption" component="div" sx={{ fontWeight: 600, mb: 0.5, mt: tooltip.entityName ? 0.5 : 0, color: 'text.primary' }}>
-            Coordinates
-          </Typography>
-          <Typography variant="caption" component="div" sx={{ fontFamily: 'monospace', color: 'primary.main' }}>
-            Local: {tooltip.localX.toFixed(2)}m, {tooltip.localY.toFixed(2)}m
-          </Typography>
-          <Typography variant="caption" component="div" sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: '10px' }}>
-            Lat: {tooltip.lat.toFixed(6)}°N
-          </Typography>
-          <Typography variant="caption" component="div" sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: '10px' }}>
-            Lon: {tooltip.lon.toFixed(6)}°E
-          </Typography>
+          {tooltip.fenceCoordinates ? (
+            <>
+              <Typography variant="caption" component="div" sx={{ fontWeight: 600, mb: 0.5, mt: 0.5, color: 'text.primary' }}>
+                Coordinates
+              </Typography>
+              <Box sx={{ fontFamily: 'monospace', fontSize: '10px', color: 'text.secondary', whiteSpace: 'pre-line' }}>
+                {tooltip.fenceCoordinates}
+              </Box>
+            </>
+          ) : (
+            <>
+              <Typography variant="caption" component="div" sx={{ fontWeight: 600, mb: 0.5, mt: tooltip.entityName ? 0.5 : 0, color: 'text.primary' }}>
+                Coordinates
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ fontFamily: 'monospace', color: 'primary.main' }}>
+                Local: {tooltip.localX?.toFixed(2)}m, {tooltip.localY?.toFixed(2)}m
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: '10px' }}>
+                Lat: {tooltip.lat?.toFixed(6)}°N
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: '10px' }}>
+                Lon: {tooltip.lon?.toFixed(6)}°E
+              </Typography>
+            </>
+          )}
         </Paper>
       )}
     </Box>
