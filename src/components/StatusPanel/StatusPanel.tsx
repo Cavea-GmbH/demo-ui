@@ -3,9 +3,6 @@ import { CheckCircle, Error as ErrorIcon } from '@mui/icons-material';
 
 interface StatusPanelProps {
   isConnected: boolean;
-  isLoading: boolean;
-  pollingEnabled: boolean;
-  onPollingToggle: (enabled: boolean) => void;
   providerCount: number;
   trackableCount: number;
   fenceCount: number;
@@ -14,9 +11,6 @@ interface StatusPanelProps {
 
 export default function StatusPanel({
   isConnected,
-  isLoading,
-  pollingEnabled,
-  onPollingToggle,
   providerCount,
   trackableCount,
   fenceCount,

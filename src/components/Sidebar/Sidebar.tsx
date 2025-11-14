@@ -12,9 +12,6 @@ interface SidebarProps {
   tabValue: number;
   onTabChange: (value: number) => void;
   isConnected: boolean;
-  isLoading: boolean;
-  pollingEnabled: boolean;
-  onPollingToggle: (enabled: boolean) => void;
   providerCount: number;
   trackableCount: number;
   fenceCount: number;
@@ -37,9 +34,6 @@ export default function Sidebar({
   tabValue,
   onTabChange,
   isConnected,
-  isLoading,
-  pollingEnabled,
-  onPollingToggle,
   providerCount,
   trackableCount,
   fenceCount,
@@ -106,9 +100,6 @@ export default function Sidebar({
             <Box sx={{ p: 2, overflow: 'auto' }}>
               <StatusPanel
                 isConnected={isConnected}
-                isLoading={isLoading}
-                pollingEnabled={pollingEnabled}
-                onPollingToggle={onPollingToggle}
                 providerCount={providerCount}
                 trackableCount={trackableCount}
                 fenceCount={fenceCount}

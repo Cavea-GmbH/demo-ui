@@ -1,6 +1,6 @@
 import { Box, Paper, Typography } from '@mui/material';
 import { useState, MouseEvent } from 'react';
-import { getSVGViewBox, SVG_WIDTH, SVG_HEIGHT, transformToSVG, screenToSVG } from '../../utils/coordinateTransform';
+import { getSVGViewBox, SVG_WIDTH, SVG_HEIGHT, screenToSVG } from '../../utils/coordinateTransform';
 import { FLOOR_PLAN_WIDTH, FLOOR_PLAN_HEIGHT, ZONE_GEOREFERENCE } from '../../config/constants';
 import { localToWgs84 } from '../../utils/georeferencing';
 import FenceLayer from './FenceLayer';

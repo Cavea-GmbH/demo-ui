@@ -176,9 +176,6 @@ function App() {
           tabValue={sidebarTab}
           onTabChange={setSidebarTab}
           isConnected={isConnected}
-          isLoading={false}
-          pollingEnabled={false}
-          onPollingToggle={() => {}} // No-op
           providerCount={providers.length}
           trackableCount={trackables.length}
           fenceCount={fences.length}

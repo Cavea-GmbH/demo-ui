@@ -1,4 +1,4 @@
-import { Box, Paper, Typography, List, ListItem, Chip, IconButton } from '@mui/material';
+import { Box, Typography, List, ListItem, Chip, IconButton } from '@mui/material';
 import { Clear as ClearIcon } from '@mui/icons-material';
 import type { FenceEvent } from '../../types/omlox';
 
