@@ -1,0 +1,68 @@
+# This workflow builds and deploys the 'admin-panel' to AWS.
+# It triggers on pushes to the 'main' (prod) and 'dev' branches.
+
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      # This workflow now runs for both the 'main' and 'dev' branches
+      - main
+      - dev
+
+# Permissions needed for OIDC to work
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    # This is the key change:
+    # It dynamically selects the GitHub Environment based on the branch name.
+    # If the branch is 'main', it uses 'Production'. Otherwise, it uses 'Development'.
+    environment:
+      name: ${{ (github.ref == 'refs/heads/main' && 'Production') || 'Development' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # The correct role ARN is automatically pulled from the selected environment's secrets
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Create .env file from Secrets and Variables
+        run: |
+          echo "VITE_OMLOX_API_URL=${{ vars.VITE_OMLOX_API_URL }}" > .env
+          echo "VITE_COGNITO_AUTHORITY=${{ vars.VITE_COGNITO_AUTHORITY }}" >> .env
+          echo "VITE_COGNITO_REDIRECT_URI=${{ vars.VITE_COGNITO_REDIRECT_URI }}" >> .env
+          echo "VITE_COGNITO_AUTH_ENDPOINT=${{ vars.VITE_COGNITO_AUTH_ENDPOINT }}" >> .env
+          echo "VITE_COGNITO_TOKEN_ENDPOINT=${{ vars.VITE_COGNITO_TOKEN_ENDPOINT }}" >> .env
+          echo "VITE_COGNITO_USERINFO_ENDPOINT=${{ vars.VITE_COGNITO_USERINFO_ENDPOINT }}" >> .env
+          echo "VITE_COGNITO_LOGOUT_ENDPOINT=${{ vars.VITE_COGNITO_LOGOUT_ENDPOINT }}" >> .env
+          echo "VITE_COGNITO_CLIENT_ID=${{ secrets.VITE_COGNITO_CLIENT_ID }}" >> .env
+          # Build metadata for the dashboard
+          echo "VITE_BUILD_NUMBER=${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> .env
+          echo "VITE_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build application
+        run: npm run build
+
+      - name: Deploy to S3
+        run: aws s3 sync ./dist s3://${{ vars.S3_BUCKET }} --delete
+
+      - name: Invalidate CloudFront Cache
+        run: aws cloudfront create-invalidation --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
