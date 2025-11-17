@@ -12,6 +12,10 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Accept build arguments for build metadata
+ARG VITE_BUILD_NUMBER
+ARG VITE_BUILD_TIME
+
 # Accept build arguments for floor configuration and demo data
 ARG VITE_LOAD_INITIAL_DATA
 ARG VITE_FLOOR_WIDTH
@@ -22,6 +26,8 @@ ARG VITE_GROUND_CONTROL_POINTS
 ARG VITE_DEMO_FENCES
 
 # Pass build arguments as environment variables for Vite build
+ENV VITE_BUILD_NUMBER=$VITE_BUILD_NUMBER
+ENV VITE_BUILD_TIME=$VITE_BUILD_TIME
 ENV VITE_LOAD_INITIAL_DATA=$VITE_LOAD_INITIAL_DATA
 ENV VITE_FLOOR_WIDTH=$VITE_FLOOR_WIDTH
 ENV VITE_FLOOR_LENGTH=$VITE_FLOOR_LENGTH

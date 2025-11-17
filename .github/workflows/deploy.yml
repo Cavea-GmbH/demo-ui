@@ -55,8 +55,19 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
+          BUILD_NUMBER: ${{ github.run_number }}-${{ github.sha }}
+          BUILD_TIME: ${{ github.event.head_commit.timestamp }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            --build-arg VITE_BUILD_NUMBER="${BUILD_NUMBER:0:20}" \
+            --build-arg VITE_BUILD_TIME="${BUILD_TIME}" \
+            --build-arg VITE_LOAD_INITIAL_DATA=true \
+            --build-arg VITE_FLOOR_WIDTH="${{ vars.VITE_FLOOR_WIDTH }}" \
+            --build-arg VITE_FLOOR_LENGTH="${{ vars.VITE_FLOOR_LENGTH }}" \
+            --build-arg VITE_ZONE_POSITION="${{ vars.VITE_ZONE_POSITION }}" \
+            --build-arg VITE_GROUND_CONTROL_POINTS="${{ vars.VITE_GROUND_CONTROL_POINTS }}" \
+            --build-arg VITE_DEMO_FENCES="${{ vars.VITE_DEMO_FENCES }}" \
+            .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
