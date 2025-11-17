@@ -59,11 +59,28 @@ export default function FloorPlan({
   const padding = 20;
   
   // Calculate floor plan bounds in SVG coordinates with padding
-  // The floor plan area is smaller to leave grey space around all edges
-  const floorPlanX = padding; // Left edge with padding
-  const floorPlanY = padding; // Top edge with padding
-  const floorPlanWidth = SVG_WIDTH - (padding * 2); // Width minus padding on both sides
-  const floorPlanHeight = SVG_HEIGHT - (padding * 2); // Height minus padding on both sides
+  // Maintain aspect ratio based on actual floor dimensions
+  const availableWidth = SVG_WIDTH - (padding * 2);
+  const availableHeight = SVG_HEIGHT - (padding * 2);
+  const floorAspectRatio = FLOOR_PLAN_WIDTH / FLOOR_PLAN_LENGTH;
+  const availableAspectRatio = availableWidth / availableHeight;
+  
+  let floorPlanWidth: number;
+  let floorPlanHeight: number;
+  
+  if (floorAspectRatio > availableAspectRatio) {
+    // Floor is wider relative to available space - constrain by width
+    floorPlanWidth = availableWidth;
+    floorPlanHeight = availableWidth / floorAspectRatio;
+  } else {
+    // Floor is taller relative to available space - constrain by height
+    floorPlanHeight = availableHeight;
+    floorPlanWidth = availableHeight * floorAspectRatio;
+  }
+  
+  // Center the floor plan in the available space
+  const floorPlanX = padding + (availableWidth - floorPlanWidth) / 2;
+  const floorPlanY = padding + (availableHeight - floorPlanHeight) / 2;
 
   // Grid cell size in meters (from settings)
   const gridCellSizeMeters = gridSize;
