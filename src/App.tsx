@@ -3,11 +3,13 @@ import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { Box } from '@mui/material';
 import { useLocationReceiver } from './hooks/useLocationReceiver';
 import { useFenceEvents } from './hooks/useFenceEvents';
+import { useLocalStorage } from './hooks/useLocalStorage';
 import { locationPushReceiver } from './services/locationPushReceiver';
 import { sseClient } from './services/sseClient';
 import FloorPlan from './components/FloorPlan/FloorPlan';
 import TopBar from './components/TopBar/TopBar';
 import Sidebar from './components/Sidebar/Sidebar';
+import { SettingsDialog } from './components/SettingsDialog/SettingsDialog';
 import type { LocationProvider, Trackable } from './types/omlox';
 
 const theme = createTheme({
@@ -26,10 +28,14 @@ function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarTab, setSidebarTab] = useState(0);
-  const [showProviders, setShowProviders] = useState(true);
-  const [showTrackables, setShowTrackables] = useState(false);
-  const [showFences, setShowFences] = useState(true);
-  const [showGrid, setShowGrid] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  // Persistent visibility settings using localStorage
+  const [showProviders, setShowProviders] = useLocalStorage('cavea-show-providers', true);
+  const [showTrackables, setShowTrackables] = useLocalStorage('cavea-show-trackables', false);
+  const [showFences, setShowFences] = useLocalStorage('cavea-show-fences', true);
+  const [showGrid, setShowGrid] = useLocalStorage('cavea-show-grid', true);
+  const [animateMovement, setAnimateMovement] = useLocalStorage('cavea-animate-movement', false);
 
   const {
     providers,
@@ -126,14 +132,13 @@ function App() {
           fenceCount={fences.length}
           lastUpdate={lastUpdate}
           onMenuClick={() => setSidebarOpen(true)}
+          onSettingsClick={() => setSettingsOpen(true)}
           showProviders={showProviders}
           showTrackables={showTrackables}
           showFences={showFences}
-          showGrid={showGrid}
           onShowProvidersChange={setShowProviders}
           onShowTrackablesChange={setShowTrackables}
           onShowFencesChange={setShowFences}
-          onShowGridChange={setShowGrid}
         />
 
         {/* Main Content - Floor Plan */}
@@ -164,6 +169,7 @@ function App() {
               showTrackables={showTrackables}
               showFences={showFences}
               showGrid={showGrid}
+              animateMovement={animateMovement}
               fenceEvents={events}
             />
           </Box>
@@ -190,6 +196,16 @@ function App() {
           onTrackableAdded={handleTrackableAdded}
           onTrackableUpdated={handleTrackableUpdated}
           onTrackableDeleted={handleTrackableDeleted}
+        />
+
+        {/* Settings Dialog */}
+        <SettingsDialog
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          showGrid={showGrid}
+          onShowGridChange={setShowGrid}
+          animateMovement={animateMovement}
+          onAnimateMovementChange={setAnimateMovement}
         />
       </Box>
     </ThemeProvider>

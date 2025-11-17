@@ -1,5 +1,5 @@
 import { Box, AppBar, Toolbar, Typography, Chip, IconButton, ToggleButton, ToggleButtonGroup, Divider } from '@mui/material';
-import { CheckCircle, Error as ErrorIcon, Menu as MenuIcon, Visibility, VisibilityOff } from '@mui/icons-material';
+import { CheckCircle, Error as ErrorIcon, Menu as MenuIcon, Settings as SettingsIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 
 interface TopBarProps {
   isConnected: boolean;
@@ -11,14 +11,13 @@ interface TopBarProps {
   fenceCount: number;
   lastUpdate: Date | null;
   onMenuClick: () => void;
+  onSettingsClick: () => void;
   showProviders: boolean;
   showTrackables: boolean;
   showFences: boolean;
-  showGrid: boolean;
   onShowProvidersChange: (show: boolean) => void;
   onShowTrackablesChange: (show: boolean) => void;
   onShowFencesChange: (show: boolean) => void;
-  onShowGridChange: (show: boolean) => void;
 }
 
 export default function TopBar({
@@ -28,14 +27,13 @@ export default function TopBar({
   fenceCount,
   lastUpdate,
   onMenuClick,
+  onSettingsClick,
   showProviders,
   showTrackables,
   showFences,
-  showGrid,
   onShowProvidersChange,
   onShowTrackablesChange,
   onShowFencesChange,
-  onShowGridChange,
 }: TopBarProps) {
   const formatLastUpdate = () => {
     if (!lastUpdate) return 'Never';
@@ -129,26 +127,24 @@ export default function TopBar({
                 <Typography variant="caption">Fences</Typography>
               </Box>
             </ToggleButton>
-            <ToggleButton
-              value="grid"
-              selected={showGrid}
-              onChange={() => onShowGridChange(!showGrid)}
-              sx={{ px: 1.5, textTransform: 'none' }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {showGrid ? <Visibility fontSize="small" /> : <VisibilityOff fontSize="small" />}
-                <Typography variant="caption">Grid & Labels</Typography>
-              </Box>
-            </ToggleButton>
           </ToggleButtonGroup>
         </Box>
+
+        <IconButton
+          color="inherit"
+          aria-label="open settings"
+          onClick={onSettingsClick}
+          sx={{ ml: 1 }}
+        >
+          <SettingsIcon />
+        </IconButton>
 
         <IconButton
           edge="end"
           color="inherit"
           aria-label="open info panel"
           onClick={onMenuClick}
-          sx={{ ml: 2 }}
+          sx={{ ml: 1 }}
         >
           <MenuIcon />
         </IconButton>

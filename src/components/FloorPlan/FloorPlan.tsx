@@ -17,6 +17,7 @@ interface FloorPlanProps {
   showTrackables: boolean;
   showFences: boolean;
   showGrid: boolean;
+  animateMovement: boolean;
   fenceEvents?: import('../../types/omlox').FenceEvent[];
 }
 
@@ -30,6 +31,7 @@ export default function FloorPlan({
   showTrackables,
   showFences,
   showGrid,
+  animateMovement,
   fenceEvents = [],
 }: FloorPlanProps) {
   // Tooltip state for coordinate display
@@ -318,6 +320,7 @@ export default function FloorPlan({
             trackableLocations={trackableLocations}
             showProviders={showProviders}
             showTrackables={showTrackables}
+            animateMovement={animateMovement}
             padding={padding}
             onEntityClick={handleEntityClick}
           />
