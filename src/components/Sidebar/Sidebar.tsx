@@ -62,22 +62,46 @@ export default function Sidebar({
         '& .MuiDrawer-paper': {
           width: drawerWidth,
           boxSizing: 'border-box',
+          borderLeft: '1px solid',
+          borderColor: 'divider',
+          background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 247, 250, 0.98) 100%)',
+          backdropFilter: 'blur(20px)',
         },
       }}
     >
       <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Box
           sx={{
-            p: 2,
-            borderBottom: 1,
+            p: 3,
+            borderBottom: '1px solid',
             borderColor: 'divider',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            background: 'rgba(255, 255, 255, 0.6)',
           }}
         >
-          <Typography variant="h6">Information</Typography>
-          <IconButton size="small" onClick={onClose}>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #0A4D8C 0%, #1E88E5 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            Control Panel
+          </Typography>
+          <IconButton 
+            size="small" 
+            onClick={onClose}
+            sx={{
+              bgcolor: 'rgba(10, 77, 140, 0.06)',
+              '&:hover': {
+                bgcolor: 'rgba(10, 77, 140, 0.12)',
+              },
+            }}
+          >
             <CloseIcon />
           </IconButton>
         </Box>
@@ -85,7 +109,25 @@ export default function Sidebar({
         <Tabs
           value={tabValue}
           onChange={(_, newValue) => onTabChange(newValue)}
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
+          sx={{ 
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            px: 2,
+            bgcolor: 'rgba(255, 255, 255, 0.5)',
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontWeight: 500,
+              minHeight: 54,
+              '&.Mui-selected': {
+                fontWeight: 600,
+              },
+            },
+            '& .MuiTabs-indicator': {
+              height: 3,
+              borderRadius: '3px 3px 0 0',
+              background: 'linear-gradient(135deg, #0A4D8C 0%, #1E88E5 100%)',
+            },
+          }}
           variant="scrollable"
           scrollButtons="auto"
         >
@@ -97,7 +139,7 @@ export default function Sidebar({
 
         <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {tabValue === 0 && (
-            <Box sx={{ p: 2, overflow: 'auto' }}>
+            <Box sx={{ p: 3, overflow: 'auto' }}>
               <StatusPanel
                 isConnected={isConnected}
                 providerCount={providerCount}
@@ -115,7 +157,7 @@ export default function Sidebar({
           )}
 
           {tabValue === 2 && (
-            <Box sx={{ p: 2, overflow: 'auto' }}>
+            <Box sx={{ p: 3, overflow: 'auto' }}>
               <ProviderManager
                 providers={providers}
                 onProviderAdded={onProviderAdded}
@@ -126,7 +168,7 @@ export default function Sidebar({
           )}
 
           {tabValue === 3 && (
-            <Box sx={{ p: 2, overflow: 'auto' }}>
+            <Box sx={{ p: 3, overflow: 'auto' }}>
               <TrackableManager
                 trackables={trackables}
                 providers={providers}

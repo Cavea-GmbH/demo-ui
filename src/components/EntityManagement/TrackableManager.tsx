@@ -133,47 +133,118 @@ export default function TrackableManager({
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">Trackables</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography 
+          variant="subtitle2" 
+          sx={{ 
+            fontWeight: 600,
+            color: 'text.primary',
+            textTransform: 'uppercase',
+            fontSize: '0.75rem',
+            letterSpacing: '0.08em',
+          }}
+        >
+          Trackables
+        </Typography>
         <Button
           variant="contained"
           size="small"
           startIcon={<AddIcon />}
           onClick={() => handleOpen()}
+          sx={{ fontWeight: 600 }}
         >
-          Add Trackable
+          Add
         </Button>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+        <Alert 
+          severity="error" 
+          sx={{ 
+            mb: 2,
+            borderRadius: 2,
+            '& .MuiAlert-message': { fontWeight: 500 },
+          }} 
+          onClose={() => setError(null)}
+        >
           {error}
         </Alert>
       )}
 
-      <List dense>
+      <List dense sx={{ p: 0 }}>
         {trackables.length === 0 ? (
-          <ListItem>
-            <ListItemText primary="No trackables" secondary="Click 'Add Trackable' to create one" />
-          </ListItem>
+          <Box
+            sx={{
+              p: 3,
+              textAlign: 'center',
+              borderRadius: 2,
+              bgcolor: 'rgba(100, 206, 255, 0.04)',
+              border: '1px solid rgba(100, 206, 255, 0.1)',
+            }}
+          >
+            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+              No trackables yet. Click 'Add' to create your first trackable object.
+            </Typography>
+          </Box>
         ) : (
           trackables.map((trackable) => (
-            <ListItem key={trackable.id}>
+            <ListItem 
+              key={trackable.id}
+              sx={{
+                mb: 1,
+                borderRadius: 2,
+                bgcolor: 'rgba(100, 206, 255, 0.04)',
+                border: '1px solid rgba(100, 206, 255, 0.08)',
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  bgcolor: 'rgba(100, 206, 255, 0.08)',
+                  transform: 'translateX(4px)',
+                },
+              }}
+            >
               <ListItemText
-                primary={trackable.name || trackable.id}
+                primary={
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    {trackable.name || trackable.id}
+                  </Typography>
+                }
                 secondary={
                   <Box>
-                    <Typography variant="caption" display="block">
-                      {trackable.type} • {trackable.id.slice(0, 8)}...
-                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center', mb: 0.5 }}>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          px: 1,
+                          py: 0.25,
+                          bgcolor: 'secondary.main',
+                          color: 'white',
+                          borderRadius: 1,
+                          fontWeight: 600,
+                          fontSize: '0.7rem',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {trackable.type}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace', fontSize: '0.7rem' }}>
+                        {trackable.id.slice(0, 16)}...
+                      </Typography>
+                    </Box>
                     {trackable.location_providers && trackable.location_providers.length > 0 && (
-                      <Box sx={{ mt: 0.5, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                      <Box sx={{ mt: 0.75, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                         {trackable.location_providers.map((providerId) => (
                           <Chip
                             key={providerId}
                             label={providerId.slice(0, 8)}
                             size="small"
-                            variant="outlined"
+                            sx={{
+                              height: 20,
+                              fontSize: '0.65rem',
+                              fontWeight: 500,
+                              bgcolor: 'rgba(10, 77, 140, 0.08)',
+                              color: 'primary.main',
+                              border: '1px solid rgba(10, 77, 140, 0.15)',
+                            }}
                           />
                         ))}
                       </Box>
@@ -182,10 +253,28 @@ export default function TrackableManager({
                 }
               />
               <ListItemSecondaryAction>
-                <IconButton edge="end" size="small" onClick={() => handleOpen(trackable)}>
+                <IconButton 
+                  edge="end" 
+                  size="small" 
+                  onClick={() => handleOpen(trackable)}
+                  sx={{
+                    mr: 0.5,
+                    bgcolor: 'rgba(100, 206, 255, 0.08)',
+                    '&:hover': { bgcolor: 'rgba(100, 206, 255, 0.15)' },
+                  }}
+                >
                   <EditIcon fontSize="small" />
                 </IconButton>
-                <IconButton edge="end" size="small" onClick={() => handleDelete(trackable.id)}>
+                <IconButton 
+                  edge="end" 
+                  size="small" 
+                  onClick={() => handleDelete(trackable.id)}
+                  sx={{
+                    bgcolor: 'rgba(230, 57, 70, 0.08)',
+                    color: 'error.main',
+                    '&:hover': { bgcolor: 'rgba(230, 57, 70, 0.15)' },
+                  }}
+                >
                   <DeleteIcon fontSize="small" />
                 </IconButton>
               </ListItemSecondaryAction>
@@ -194,9 +283,30 @@ export default function TrackableManager({
         )}
       </List>
 
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingTrackable ? 'Edit Trackable' : 'Create Trackable'}
+      <Dialog 
+        open={open} 
+        onClose={handleClose} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 12px 48px rgba(10, 77, 140, 0.15)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ pb: 2, pt: 3, px: 3 }}>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #64CEFF 0%, #8FDBFF 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            {editingTrackable ? 'Edit Trackable' : 'Create Trackable'}
+          </Typography>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
@@ -254,22 +364,44 @@ export default function TrackableManager({
               fullWidth
             />
             <Box>
-              <Typography variant="subtitle2" gutterBottom>
+              <Typography 
+                variant="subtitle2" 
+                gutterBottom
+                sx={{ fontWeight: 600 }}
+              >
                 Location Providers
               </Typography>
               {providers.length === 0 ? (
-                <Typography variant="body2" color="text.secondary">
-                  No providers available. Create providers first.
-                </Typography>
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: 'rgba(10, 77, 140, 0.04)',
+                    border: '1px solid rgba(10, 77, 140, 0.1)',
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    No providers available. Create providers first.
+                  </Typography>
+                </Box>
               ) : (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
                   {providers.map((provider) => (
                     <Chip
                       key={provider.id}
-                      label={provider.name || provider.id}
+                      label={provider.name || provider.id.slice(0, 12)}
                       onClick={() => toggleProvider(provider.id)}
-                      color={selectedProviders.includes(provider.id) ? 'primary' : 'default'}
-                      variant={selectedProviders.includes(provider.id) ? 'filled' : 'outlined'}
+                      sx={{
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        bgcolor: selectedProviders.includes(provider.id) ? 'primary.main' : 'rgba(10, 77, 140, 0.08)',
+                        color: selectedProviders.includes(provider.id) ? 'white' : 'primary.main',
+                        border: '1px solid',
+                        borderColor: selectedProviders.includes(provider.id) ? 'primary.main' : 'rgba(10, 77, 140, 0.2)',
+                        '&:hover': {
+                          bgcolor: selectedProviders.includes(provider.id) ? 'primary.dark' : 'rgba(10, 77, 140, 0.12)',
+                        },
+                      }}
                     />
                   ))}
                 </Box>
@@ -277,9 +409,24 @@ export default function TrackableManager({
             </Box>
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
+        <DialogActions sx={{ px: 3, pb: 3, pt: 2, gap: 1 }}>
+          <Button 
+            onClick={handleClose}
+            sx={{ 
+              flex: 1,
+              fontWeight: 600,
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained"
+            sx={{ 
+              flex: 1,
+              fontWeight: 600,
+            }}
+          >
             {editingTrackable ? 'Update' : 'Create'}
           </Button>
         </DialogActions>

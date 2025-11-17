@@ -169,9 +169,9 @@ export default function FloorPlan({
       sx={{
         width: '100%',
         height: '100%',
-        borderRadius: 1,
+        borderRadius: 2,
         overflow: 'hidden',
-        backgroundColor: '#e0e0e0',
+        background: 'linear-gradient(135deg, #E8EEF2 0%, #F0F4F8 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -200,24 +200,46 @@ export default function FloorPlan({
             <path
               d={`M ${gridCellSizePixelsX} 0 L 0 0 0 ${gridCellSizePixelsY}`}
               fill="none"
-              stroke="#d0d0d0"
+              stroke="rgba(10, 77, 140, 0.12)"
               strokeWidth="1"
+              strokeDasharray="2,2"
             />
           </pattern>
         </defs>
 
-        {/* Layer 1: Grey background container (padding area) - darker for better contrast */}
-        <rect width="100%" height="100%" fill="#e0e0e0" />
+        {/* Layer 1: Background container with subtle gradient */}
+        <defs>
+          <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: '#E8EEF2', stopOpacity: 1 }} />
+            <stop offset="100%" style={{ stopColor: '#F0F4F8', stopOpacity: 1 }} />
+          </linearGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#bgGradient)" />
 
-        {/* Layer 2: Floor plan (white background + grid) */}
+        {/* Layer 2: Floor plan with modern styling */}
         <g id="floor-plan-area">
-          {/* White background */}
+          {/* White background with subtle shadow effect */}
           <rect
             x={floorPlanX}
             y={floorPlanY}
             width={floorPlanWidth}
             height={floorPlanHeight}
-            fill="#ffffff"
+            fill="#FFFFFF"
+            rx={8}
+            ry={8}
+          />
+          
+          {/* Inner shadow effect */}
+          <rect
+            x={floorPlanX}
+            y={floorPlanY}
+            width={floorPlanWidth}
+            height={floorPlanHeight}
+            fill="none"
+            stroke="rgba(10, 77, 140, 0.08)"
+            strokeWidth="1"
+            rx={8}
+            ry={8}
           />
           
           {/* 5x5 meter grid - starts at bottom left (0,0 in local coordinates) */}
@@ -234,7 +256,7 @@ export default function FloorPlan({
 
         {/* Ground Control Point Labels - shown outside the floor plan in padding area */}
         {showGrid && (
-          <g id="gcp-labels" style={{ fontSize: '9px', fill: '#666', fontFamily: 'monospace' }}>
+          <g id="gcp-labels" style={{ fontSize: '9px', fill: '#5F6F87', fontFamily: 'Inter, monospace', fontWeight: 500 }}>
             {/* Bottom-left corner (0, 0) */}
             {ZONE_GEOREFERENCE.groundControlPoints[0] && (
               <g>
@@ -334,13 +356,15 @@ export default function FloorPlan({
             position: 'fixed',
             left: tooltip.x + 10,
             top: tooltip.y + 10,
-            padding: 1.5,
+            padding: 2,
             zIndex: 2000,
             pointerEvents: 'none',
-            boxShadow: 3,
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(4px)',
-            minWidth: 180,
+            boxShadow: '0 8px 32px rgba(10, 77, 140, 0.2)',
+            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(10, 77, 140, 0.12)',
+            borderRadius: 3,
+            minWidth: 200,
           }}
         >
           {tooltip.entityName && (

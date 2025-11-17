@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import { Box } from '@mui/material';
+import { ThemeProvider, CssBaseline, Box } from '@mui/material';
+import { theme } from './theme/theme';
 import { useLocationReceiver } from './hooks/useLocationReceiver';
 import { useFenceEvents } from './hooks/useFenceEvents';
 import { useLocalStorage } from './hooks/useLocalStorage';
@@ -11,18 +11,6 @@ import TopBar from './components/TopBar/TopBar';
 import Sidebar from './components/Sidebar/Sidebar';
 import { SettingsDialog } from './components/SettingsDialog/SettingsDialog';
 import type { LocationProvider, Trackable } from './types/omlox';
-
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#2196f3',
-    },
-    secondary: {
-      main: '#ff9800',
-    },
-  },
-});
 
 function App() {
   const [isConnected, setIsConnected] = useState(false);
@@ -147,7 +135,7 @@ function App() {
             flex: 1,
             overflow: 'hidden',
             position: 'relative',
-            p: 2,
+            p: 3,
             bgcolor: 'background.default',
           }}
         >
@@ -155,8 +143,11 @@ function App() {
             sx={{
               width: '100%',
               height: '100%',
-              borderRadius: 1,
+              borderRadius: 3,
               overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(10, 77, 140, 0.08)',
+              background: '#FFFFFF',
+              border: '1px solid rgba(10, 77, 140, 0.08)',
             }}
           >
             <FloorPlan
