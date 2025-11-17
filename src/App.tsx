@@ -9,7 +9,7 @@ import { sseClient } from './services/sseClient';
 import FloorPlan from './components/FloorPlan/FloorPlan';
 import TopBar from './components/TopBar/TopBar';
 import Sidebar from './components/Sidebar/Sidebar';
-import { SettingsDialog } from './components/SettingsDialog/SettingsDialog';
+import { SettingsDialog, LabelDisplayMode } from './components/SettingsDialog/SettingsDialog';
 import type { LocationProvider, Trackable } from './types/omlox';
 
 function App() {
@@ -24,6 +24,7 @@ function App() {
   const [showFences, setShowFences] = useLocalStorage('cavea-show-fences', true);
   const [showGrid, setShowGrid] = useLocalStorage('cavea-show-grid', true);
   const [animateMovement, setAnimateMovement] = useLocalStorage('cavea-animate-movement', false);
+  const [labelDisplay, setLabelDisplay] = useLocalStorage<LabelDisplayMode>('cavea-label-display', 'full');
 
   const {
     providers,
@@ -161,6 +162,7 @@ function App() {
               showFences={showFences}
               showGrid={showGrid}
               animateMovement={animateMovement}
+              labelDisplay={labelDisplay}
               fenceEvents={events}
             />
           </Box>
@@ -181,6 +183,7 @@ function App() {
           onClearEvents={clearEvents}
           providers={providers}
           trackables={trackables}
+          fences={fences}
           onProviderAdded={handleProviderAdded}
           onProviderUpdated={handleProviderUpdated}
           onProviderDeleted={handleProviderDeleted}
@@ -197,6 +200,8 @@ function App() {
           onShowGridChange={setShowGrid}
           animateMovement={animateMovement}
           onAnimateMovementChange={setAnimateMovement}
+          labelDisplay={labelDisplay}
+          onLabelDisplayChange={setLabelDisplay}
         />
       </Box>
     </ThemeProvider>

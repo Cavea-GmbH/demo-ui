@@ -11,8 +11,14 @@ import {
   Typography,
   Divider,
   Box,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
+
+export type LabelDisplayMode = 'full' | 'name' | 'none';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -21,6 +27,8 @@ interface SettingsDialogProps {
   onShowGridChange: (show: boolean) => void;
   animateMovement: boolean;
   onAnimateMovementChange: (animate: boolean) => void;
+  labelDisplay: LabelDisplayMode;
+  onLabelDisplayChange: (mode: LabelDisplayMode) => void;
 }
 
 export const SettingsDialog: React.FC<SettingsDialogProps> = ({
@@ -30,6 +38,8 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   onShowGridChange,
   animateMovement,
   onAnimateMovementChange,
+  labelDisplay,
+  onLabelDisplayChange,
 }) => {
   return (
     <Dialog 
@@ -70,9 +80,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
           variant="h6" 
           sx={{ 
             fontWeight: 700,
-            background: 'linear-gradient(135deg, #0A4D8C 0%, #1E88E5 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            color: '#0A4D8C',
           }}
         >
           Display Settings
@@ -167,6 +175,68 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               />
             </Box>
           </FormGroup>
+
+          <Divider sx={{ my: 3 }} />
+
+          {/* Marker Labels Section */}
+          <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, color: 'text.primary' }}>
+            Marker Labels
+          </Typography>
+
+          <FormControl 
+            fullWidth
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'rgba(10, 77, 140, 0.04)',
+                '&:hover': {
+                  bgcolor: 'rgba(10, 77, 140, 0.06)',
+                },
+                '&.Mui-focused': {
+                  bgcolor: 'rgba(10, 77, 140, 0.08)',
+                },
+              },
+            }}
+          >
+            <InputLabel id="label-display-select-label">Display Mode</InputLabel>
+            <Select
+              labelId="label-display-select-label"
+              id="label-display-select"
+              value={labelDisplay}
+              label="Display Mode"
+              onChange={(e) => onLabelDisplayChange(e.target.value as LabelDisplayMode)}
+            >
+              <MenuItem value="full">
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Full Details
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Show name and type
+                  </Typography>
+                </Box>
+              </MenuItem>
+              <MenuItem value="name">
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Name Only
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Show only the marker name
+                  </Typography>
+                </Box>
+              </MenuItem>
+              <MenuItem value="none">
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Hidden
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    No labels, markers only
+                  </Typography>
+                </Box>
+              </MenuItem>
+            </Select>
+          </FormControl>
 
           <Divider sx={{ my: 3 }} />
 

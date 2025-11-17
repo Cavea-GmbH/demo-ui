@@ -4,7 +4,8 @@ import StatusPanel from '../StatusPanel/StatusPanel';
 import EventLog from '../EventLog/EventLog';
 import ProviderManager from '../EntityManagement/ProviderManager';
 import TrackableManager from '../EntityManagement/TrackableManager';
-import type { FenceEvent, LocationProvider, Trackable } from '../../types/omlox';
+import FenceList from '../EntityManagement/FenceList';
+import type { FenceEvent, LocationProvider, Trackable, Fence } from '../../types/omlox';
 
 interface SidebarProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface SidebarProps {
   onClearEvents: () => void;
   providers: LocationProvider[];
   trackables: Trackable[];
+  fences: Fence[];
   onProviderAdded: (provider: LocationProvider) => void;
   onProviderUpdated: (provider: LocationProvider) => void;
   onProviderDeleted: (providerId: string) => void;
@@ -42,6 +44,7 @@ export default function Sidebar({
   onClearEvents,
   providers,
   trackables,
+  fences,
   onProviderAdded,
   onProviderUpdated,
   onProviderDeleted,
@@ -85,9 +88,7 @@ export default function Sidebar({
             variant="h6" 
             sx={{ 
               fontWeight: 700,
-              background: 'linear-gradient(135deg, #0A4D8C 0%, #1E88E5 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#0A4D8C',
             }}
           >
             Control Panel
@@ -125,7 +126,7 @@ export default function Sidebar({
             '& .MuiTabs-indicator': {
               height: 3,
               borderRadius: '3px 3px 0 0',
-              background: 'linear-gradient(135deg, #0A4D8C 0%, #1E88E5 100%)',
+              background: '#0A4D8C',
             },
           }}
           variant="scrollable"
@@ -135,6 +136,7 @@ export default function Sidebar({
           <Tab label="Events" />
           <Tab label="Providers" />
           <Tab label="Trackables" />
+          <Tab label="Fences" />
         </Tabs>
 
         <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -176,6 +178,12 @@ export default function Sidebar({
                 onTrackableUpdated={onTrackableUpdated}
                 onTrackableDeleted={onTrackableDeleted}
               />
+            </Box>
+          )}
+
+          {tabValue === 4 && (
+            <Box sx={{ p: 3, overflow: 'auto' }}>
+              <FenceList fences={fences} />
             </Box>
           )}
         </Box>

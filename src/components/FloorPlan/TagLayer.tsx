@@ -1,6 +1,7 @@
 import type { Location, LocationProvider, Trackable } from '../../types/omlox';
 import { transformToSVG, SVG_WIDTH } from '../../utils/coordinateTransform';
 import { MouseEvent } from 'react';
+import type { LabelDisplayMode } from '../SettingsDialog/SettingsDialog';
 
 interface TagLayerProps {
   providers: LocationProvider[];
@@ -10,6 +11,7 @@ interface TagLayerProps {
   showProviders: boolean;
   showTrackables: boolean;
   animateMovement: boolean;
+  labelDisplay: LabelDisplayMode;
   padding?: number;
   onEntityClick: (location: Location, entityName: string, entityType: string, screenX: number, screenY: number) => void;
 }
@@ -35,6 +37,7 @@ export default function TagLayer({
   showProviders,
   showTrackables,
   animateMovement,
+  labelDisplay,
   padding = 0,
   onEntityClick,
 }: TagLayerProps) {
@@ -89,7 +92,8 @@ export default function TagLayer({
                 stroke="#fff"
                 strokeWidth="2"
               />
-              {(provider.name || provider.id) && (
+              {/* Conditional label rendering based on labelDisplay setting */}
+              {labelDisplay !== 'none' && (provider.name || provider.id) && (
                 <text
                   x={0}
                   y={-10}
@@ -101,15 +105,17 @@ export default function TagLayer({
                   {provider.name || provider.id.slice(0, 8)}
                 </text>
               )}
-              <text
-                x={0}
-                y={20}
-                textAnchor="middle"
-                fontSize="8"
-                fill="#666"
-              >
-                {provider.type}
-              </text>
+              {labelDisplay === 'full' && (
+                <text
+                  x={0}
+                  y={20}
+                  textAnchor="middle"
+                  fontSize="8"
+                  fill="#666"
+                >
+                  {provider.type}
+                </text>
+              )}
             </g>
           );
         })}
@@ -161,7 +167,8 @@ export default function TagLayer({
                 stroke="#fff"
                 strokeWidth="2"
               />
-              {(trackable.name || trackable.id) && (
+              {/* Conditional label rendering based on labelDisplay setting */}
+              {labelDisplay !== 'none' && (trackable.name || trackable.id) && (
                 <text
                   x={0}
                   y={-radius - 5}

@@ -78,8 +78,8 @@ export default function TopBar({
             height: 8,
             borderRadius: '50%',
             background: isConnected 
-              ? 'linear-gradient(135deg, #64CEFF 0%, #8FDBFF 100%)'
-              : 'linear-gradient(135deg, #E63946 0%, #FF5A65 100%)',
+              ? '#64CEFF'
+              : '#E63946',
             boxShadow: isConnected
               ? '0 0 12px rgba(100, 206, 255, 0.5)'
               : '0 0 12px rgba(230, 57, 70, 0.5)',

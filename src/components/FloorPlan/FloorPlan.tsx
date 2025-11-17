@@ -6,6 +6,7 @@ import { localToWgs84 } from '../../utils/georeferencing';
 import FenceLayer from './FenceLayer';
 import TagLayer from './TagLayer';
 import type { Fence, Location, LocationProvider, Trackable } from '../../types/omlox';
+import type { LabelDisplayMode } from '../SettingsDialog/SettingsDialog';
 
 interface FloorPlanProps {
   fences: Fence[];
@@ -18,6 +19,7 @@ interface FloorPlanProps {
   showFences: boolean;
   showGrid: boolean;
   animateMovement: boolean;
+  labelDisplay: LabelDisplayMode;
   fenceEvents?: import('../../types/omlox').FenceEvent[];
 }
 
@@ -32,6 +34,7 @@ export default function FloorPlan({
   showFences,
   showGrid,
   animateMovement,
+  labelDisplay,
   fenceEvents = [],
 }: FloorPlanProps) {
   // Tooltip state for coordinate display
@@ -343,6 +346,7 @@ export default function FloorPlan({
             showProviders={showProviders}
             showTrackables={showTrackables}
             animateMovement={animateMovement}
+            labelDisplay={labelDisplay}
             padding={padding}
             onEntityClick={handleEntityClick}
           />

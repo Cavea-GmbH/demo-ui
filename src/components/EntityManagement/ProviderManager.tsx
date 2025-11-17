@@ -271,9 +271,7 @@ export default function ProviderManager({
             variant="h6" 
             sx={{ 
               fontWeight: 700,
-              background: 'linear-gradient(135deg, #0A4D8C 0%, #1E88E5 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#0A4D8C',
             }}
           >
             {editingProvider ? 'Edit Provider' : 'Create Provider'}

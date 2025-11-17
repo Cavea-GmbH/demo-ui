@@ -300,9 +300,7 @@ export default function TrackableManager({
             variant="h6" 
             sx={{ 
               fontWeight: 700,
-              background: 'linear-gradient(135deg, #64CEFF 0%, #8FDBFF 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#64CEFF',
             }}
           >
             {editingTrackable ? 'Edit Trackable' : 'Create Trackable'}

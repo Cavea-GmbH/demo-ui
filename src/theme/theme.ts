@@ -68,9 +68,9 @@ export const theme = createTheme({
           },
         },
         contained: {
-          background: 'linear-gradient(135deg, #0A4D8C 0%, #1E88E5 100%)',
+          background: '#0A4D8C',
           '&:hover': {
-            background: 'linear-gradient(135deg, #062F55 0%, #0A4D8C 100%)',
+            background: '#062F55',
           },
         },
       },

@@ -15,7 +15,8 @@ export default function EventLog({ events, onClear }: EventLogProps) {
   };
 
   const getEventColor = (eventType: string) => {
-    return eventType === 'region_entry' ? 'success' : 'error';
+    // Using the same colors as fence animations
+    return eventType === 'region_entry' ? '#4caf50' : '#f44336';
   };
 
   const getEntityName = (event: FenceEvent) => {
@@ -111,7 +112,7 @@ export default function EventLog({ events, onClear }: EventLogProps) {
                   '&:hover': {
                     bgcolor: 'rgba(10, 77, 140, 0.04)',
                     transform: 'translateX(-4px)',
-                    boxShadow: '4px 0 0 0 ' + (event.event_type === 'region_entry' ? '#00A896' : '#E63946'),
+                    boxShadow: '4px 0 0 0 ' + getEventColor(event.event_type),
                   },
                   animation: index === 0 ? 'slideIn 0.3s ease-out' : 'none',
                   '@keyframes slideIn': {
@@ -129,11 +130,14 @@ export default function EventLog({ events, onClear }: EventLogProps) {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Chip
                     label={event.event_type.replace('_', ' ').toUpperCase()}
-                    color={getEventColor(event.event_type)}
                     size="small"
                     sx={{
                       fontWeight: 600,
                       fontSize: '0.7rem',
+                      bgcolor: event.event_type === 'region_entry' ? 'rgba(76, 175, 80, 0.15)' : 'rgba(244, 67, 54, 0.15)',
+                      color: getEventColor(event.event_type),
+                      border: '1px solid',
+                      borderColor: getEventColor(event.event_type),
                     }}
                   />
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
@@ -143,8 +147,17 @@ export default function EventLog({ events, onClear }: EventLogProps) {
                 <Typography variant="body2" sx={{ mb: 0.75, fontWeight: 600, color: 'text.primary' }}>
                   {getEntityName(event)}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace', fontSize: '0.7rem' }}>
-                  Fence: {event.fence_id.slice(0, 12)}...
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary" 
+                  sx={{ 
+                    fontFamily: 'monospace', 
+                    fontSize: '0.7rem',
+                    wordBreak: 'break-all',
+                    overflowWrap: 'break-word',
+                  }}
+                >
+                  Fence: {event.fence_id}
                 </Typography>
               </ListItem>
             ))}
