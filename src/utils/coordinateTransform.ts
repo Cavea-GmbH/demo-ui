@@ -1,5 +1,5 @@
 import type { Point } from '../types/omlox';
-import { FLOOR_PLAN_WIDTH, FLOOR_PLAN_HEIGHT } from '../config/constants';
+import { FLOOR_PLAN_WIDTH, FLOOR_PLAN_LENGTH } from '../config/constants';
 
 // SVG viewport dimensions (pixels)
 const SVG_WIDTH = 800;
@@ -12,7 +12,7 @@ const SVG_HEIGHT = 480;
 export function transformToSVG(
   point: Point, 
   floorWidth: number = FLOOR_PLAN_WIDTH, 
-  floorHeight: number = FLOOR_PLAN_HEIGHT,
+  floorLength: number = FLOOR_PLAN_LENGTH,
   padding: number = 0
 ): [number, number] {
   const [x, y] = point.coordinates;
@@ -23,7 +23,7 @@ export function transformToSVG(
   
   // Scale factors
   const scaleX = availableWidth / floorWidth;
-  const scaleY = availableHeight / floorHeight;
+  const scaleY = availableHeight / floorLength;
   
   // Transform: API coordinates (meters) -> SVG pixels
   const svgX = padding + (x * scaleX);
@@ -35,9 +35,9 @@ export function transformToSVG(
 /**
  * Transform a coordinate from SVG pixel space to API space (meters)
  */
-export function transformFromSVG(svgX: number, svgY: number, floorWidth: number = FLOOR_PLAN_WIDTH, floorHeight: number = FLOOR_PLAN_HEIGHT): [number, number] {
+export function transformFromSVG(svgX: number, svgY: number, floorWidth: number = FLOOR_PLAN_WIDTH, floorLength: number = FLOOR_PLAN_LENGTH): [number, number] {
   const scaleX = SVG_WIDTH / floorWidth;
-  const scaleY = SVG_HEIGHT / floorHeight;
+  const scaleY = SVG_HEIGHT / floorLength;
   
   const x = svgX / scaleX;
   const y = (SVG_HEIGHT - svgY) / scaleY; // Flip Y axis

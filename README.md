@@ -7,7 +7,8 @@ A lightweight, real-time demo UI for showcasing indoor Real-Time Location System
 ## Features
 
 ### Core Visualization
-- **Interactive Floor Plan**: SVG-based floor plan with 5x5m grid overlay and configurable dimensions (50m x 30m)
+- **Interactive Floor Plan**: SVG-based floor plan with configurable grid (1m, 2.5m, 5m) and dimensions
+- **Environment-based Configuration**: Deploy different floor plans per server via environment variables (see [FLOOR_CONFIG.md](./FLOOR_CONFIG.md))
 - **Real-time Tracking**: Display positions of BLE, UWB, Wirepas, and GPS tags with live updates
 - **Dual Coordinate Support**: Handle both local (x,y) and WGS84 (lat/lon) coordinates with automatic georeferencing
 - **Location Providers & Trackables**: Visualize and toggle between location providers and trackable items
@@ -80,6 +81,16 @@ VITE_LOAD_INITIAL_DATA=true
 # Omlox API URL - frontend makes requests to this URL (proxied via /api/)
 VITE_OMLOX_API_URL=/api
 
+# Floor Plan Configuration (optional - defaults provided)
+# ========================================================
+# See FLOOR_CONFIG.md for detailed configuration guide
+VITE_FLOOR_WIDTH=50
+VITE_FLOOR_LENGTH=30
+VITE_ZONE_POSITION=[7.815694, 48.130216]
+VITE_GROUND_CONTROL_POINTS=[{"wgs84":[7.815694,48.130216],"local":[0,0]},{"wgs84":[7.816551,48.130216],"local":[50,0]},{"wgs84":[7.815694,48.13031],"local":[0,30]},{"wgs84":[7.816551,48.13031],"local":[50,30]}]
+
+# Demo Fences (optional - single test fence by default)
+VITE_DEMO_FENCES=[{"id":"fence-1","name":"Test Fence 1","region":{"type":"Polygon","coordinates":[[[15,5],[35,5],[35,15],[15,15],[15,5]]]},"floor":0,"crs":"local"}]
 
 # Backend Proxy Configuration (runtime environment variables)
 # ============================================================
@@ -91,6 +102,7 @@ VITE_OMLOX_API_URL=/api
 **Note**: 
 - `VITE_*` variables are embedded into the frontend build at compile time
 - The backend is **standalone** - it maintains all data in-memory (no external Hub needed)
+- Floor configuration is optional - see **[FLOOR_CONFIG.md](./FLOOR_CONFIG.md)** for detailed setup guide
 
 ### 3. Start Development Servers
 

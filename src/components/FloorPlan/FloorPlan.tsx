@@ -1,7 +1,7 @@
 import { Box, Paper, Typography } from '@mui/material';
 import { useState, MouseEvent } from 'react';
 import { getSVGViewBox, SVG_WIDTH, SVG_HEIGHT, screenToSVG } from '../../utils/coordinateTransform';
-import { FLOOR_PLAN_WIDTH, FLOOR_PLAN_HEIGHT, ZONE_GEOREFERENCE } from '../../config/constants';
+import { FLOOR_PLAN_WIDTH, FLOOR_PLAN_LENGTH, ZONE_GEOREFERENCE } from '../../config/constants';
 import { localToWgs84 } from '../../utils/georeferencing';
 import FenceLayer from './FenceLayer';
 import TagLayer from './TagLayer';
@@ -68,7 +68,7 @@ export default function FloorPlan({
   // Grid cell size in meters (from settings)
   const gridCellSizeMeters = gridSize;
   const gridCellSizePixelsX = (gridCellSizeMeters / FLOOR_PLAN_WIDTH) * floorPlanWidth;
-  const gridCellSizePixelsY = (gridCellSizeMeters / FLOOR_PLAN_HEIGHT) * floorPlanHeight;
+  const gridCellSizePixelsY = (gridCellSizeMeters / FLOOR_PLAN_LENGTH) * floorPlanHeight;
 
   // Handle right-click on floor plan
   const handleContextMenu = (event: MouseEvent<SVGSVGElement>) => {
@@ -91,7 +91,7 @@ export default function FloorPlan({
     // Convert SVG coordinates to local (meters) coordinates
     // Reverse the transformToSVG calculation
     const scaleToLocalX = FLOOR_PLAN_WIDTH / floorPlanWidth;
-    const scaleToLocalY = FLOOR_PLAN_HEIGHT / floorPlanHeight;
+    const scaleToLocalY = FLOOR_PLAN_LENGTH / floorPlanHeight;
     
     const localX = (svgX - floorPlanX) * scaleToLocalX;
     // Y-axis is flipped in SVG (top = 0, bottom = max)
