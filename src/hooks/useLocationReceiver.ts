@@ -32,9 +32,6 @@ interface UseLocationReceiverReturn {
 export function useLocationReceiver(): UseLocationReceiverReturn {
   // Check if we should load initial demo data from environment variable
   const shouldLoadInitialData = import.meta.env.VITE_LOAD_INITIAL_DATA === 'true';
-  
-  console.log('🔧 VITE_LOAD_INITIAL_DATA:', import.meta.env.VITE_LOAD_INITIAL_DATA);
-  console.log('🔧 shouldLoadInitialData:', shouldLoadInitialData);
 
   // Initialize with hardcoded demo data if enabled
   const [providers, setProviders] = useState<LocationProvider[]>(
