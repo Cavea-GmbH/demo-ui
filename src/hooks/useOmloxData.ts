@@ -6,7 +6,7 @@ import type {
   Trackable,
   Fence,
 } from '../types/omlox';
-import { DEFAULT_ZONE_ID, HARDCODED_FENCES } from '../config/constants';
+import { ZONE_GEOREFERENCE, HARDCODED_FENCES } from '../config/constants';
 
 interface UseOmloxDataReturn {
   providers: LocationProvider[];
@@ -42,7 +42,7 @@ export function useOmloxData(
       const [providersData, trackablesData, fencesData] = await Promise.all([
         omloxApi.getProviders().catch(() => []),
         omloxApi.getTrackables().catch(() => []),
-        omloxApi.getFences({ zone_id: DEFAULT_ZONE_ID, crs: 'local' }).catch(() => []),
+        omloxApi.getFences({ zone_id: ZONE_GEOREFERENCE.zoneId, crs: 'local' }).catch(() => []),
       ]);
 
       setProviders(providersData);
@@ -72,7 +72,7 @@ export function useOmloxData(
 
       // Fetch all provider locations
       const providerLocs = await omloxApi.getProviderLocations({
-        zone_id: DEFAULT_ZONE_ID,
+        zone_id: ZONE_GEOREFERENCE.zoneId,
         crs: 'local',
       });
 
@@ -90,7 +90,7 @@ export function useOmloxData(
         trackables.map(async (trackable) => {
           try {
             const location = await omloxApi.getTrackableLocation(trackable.id, {
-              zone_id: DEFAULT_ZONE_ID,
+              zone_id: ZONE_GEOREFERENCE.zoneId,
               crs: 'local',
             });
             trackableLocMap.set(trackable.id, location);
