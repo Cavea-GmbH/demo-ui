@@ -37,8 +37,8 @@ jobs:
           # Build metadata
           echo "VITE_BUILD_NUMBER=${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> .env
           echo "VITE_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
-          # Control initial demo data loading (true for dev, false for prod)
-          echo "VITE_LOAD_INITIAL_DATA=true" >> .env
+          # Control initial demo data loading (configurable via GitHub variable, default: true)
+          echo "VITE_LOAD_INITIAL_DATA=${{ vars.VITE_LOAD_INITIAL_DATA || 'true' }}" >> .env
           # Floor Plan Configuration
           echo "VITE_FLOOR_WIDTH=${{ vars.VITE_FLOOR_WIDTH }}" >> .env
           echo "VITE_FLOOR_LENGTH=${{ vars.VITE_FLOOR_LENGTH }}" >> .env
@@ -58,11 +58,17 @@ jobs:
         run: |
           BUILD_NUM="${GITHUB_RUN_NUMBER}-${GITHUB_SHA:0:7}"
           BUILD_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          LOAD_DATA="${{ vars.VITE_LOAD_INITIAL_DATA }}"
+          
+          # Default to 'true' if not set
+          if [ -z "$LOAD_DATA" ]; then
+            LOAD_DATA="true"
+          fi
           
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             --build-arg VITE_BUILD_NUMBER="${BUILD_NUM}" \
             --build-arg VITE_BUILD_TIME="${BUILD_TS}" \
-            --build-arg VITE_LOAD_INITIAL_DATA=true \
+            --build-arg VITE_LOAD_INITIAL_DATA="${LOAD_DATA}" \
             --build-arg VITE_FLOOR_WIDTH="${{ vars.VITE_FLOOR_WIDTH }}" \
             --build-arg VITE_FLOOR_LENGTH="${{ vars.VITE_FLOOR_LENGTH }}" \
             --build-arg VITE_ZONE_POSITION="${{ vars.VITE_ZONE_POSITION }}" \
