@@ -187,6 +187,41 @@ export default function Sidebar({
             </Box>
           )}
         </Box>
+
+        {/* Version and Build Information Footer */}
+        <Box
+          sx={{
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            px: 3,
+            py: 2,
+            bgcolor: 'rgba(255, 255, 255, 0.6)',
+          }}
+        >
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              display: 'block',
+              color: 'text.secondary',
+              fontSize: '0.7rem',
+              lineHeight: 1.4,
+              mb: 0.5,
+            }}
+          >
+            <strong>Version:</strong> {import.meta.env.VITE_BUILD_NUMBER || 'dev'}
+          </Typography>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              display: 'block',
+              color: 'text.secondary',
+              fontSize: '0.7rem',
+              lineHeight: 1.4,
+            }}
+          >
+            <strong>Built:</strong> {import.meta.env.VITE_BUILD_TIME ? new Date(import.meta.env.VITE_BUILD_TIME).toLocaleString() : 'development'}
+          </Typography>
+        </Box>
       </Box>
     </Drawer>
   );
