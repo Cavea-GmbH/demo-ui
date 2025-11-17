@@ -25,6 +25,8 @@ interface SettingsDialogProps {
   onClose: () => void;
   showGrid: boolean;
   onShowGridChange: (show: boolean) => void;
+  gridSize: number;
+  onGridSizeChange: (size: number) => void;
   animateMovement: boolean;
   onAnimateMovementChange: (animate: boolean) => void;
   labelDisplay: LabelDisplayMode;
@@ -36,6 +38,8 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   onClose,
   showGrid,
   onShowGridChange,
+  gridSize,
+  onGridSizeChange,
   animateMovement,
   onAnimateMovementChange,
   labelDisplay,
@@ -132,6 +136,39 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                 sx={{ m: 0, width: '100%' }}
               />
             </Box>
+
+            {/* Grid Size Selector - shown when grid is enabled */}
+            {showGrid && (
+              <Box
+                sx={{
+                  mb: 2,
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(10, 77, 140, 0.04)',
+                  border: '1px solid rgba(10, 77, 140, 0.1)',
+                }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>
+                  Grid Size
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="grid-size-label">Size (meters)</InputLabel>
+                  <Select
+                    labelId="grid-size-label"
+                    value={gridSize}
+                    label="Size (meters)"
+                    onChange={(e) => onGridSizeChange(Number(e.target.value))}
+                    sx={{
+                      bgcolor: 'white',
+                    }}
+                  >
+                    <MenuItem value={1}>1m × 1m</MenuItem>
+                    <MenuItem value={2.5}>2.5m × 2.5m</MenuItem>
+                    <MenuItem value={5}>5m × 5m</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+            )}
             
             <Box
               sx={{

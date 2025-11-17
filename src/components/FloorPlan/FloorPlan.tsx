@@ -18,6 +18,7 @@ interface FloorPlanProps {
   showTrackables: boolean;
   showFences: boolean;
   showGrid: boolean;
+  gridSize: number;
   animateMovement: boolean;
   labelDisplay: LabelDisplayMode;
   fenceEvents?: import('../../types/omlox').FenceEvent[];
@@ -33,6 +34,7 @@ export default function FloorPlan({
   showTrackables,
   showFences,
   showGrid,
+  gridSize,
   animateMovement,
   labelDisplay,
   fenceEvents = [],
@@ -63,8 +65,8 @@ export default function FloorPlan({
   const floorPlanWidth = SVG_WIDTH - (padding * 2); // Width minus padding on both sides
   const floorPlanHeight = SVG_HEIGHT - (padding * 2); // Height minus padding on both sides
 
-  // Grid cell size in meters (5m grid)
-  const gridCellSizeMeters = 5;
+  // Grid cell size in meters (from settings)
+  const gridCellSizeMeters = gridSize;
   const gridCellSizePixelsX = (gridCellSizeMeters / FLOOR_PLAN_WIDTH) * floorPlanWidth;
   const gridCellSizePixelsY = (gridCellSizeMeters / FLOOR_PLAN_HEIGHT) * floorPlanHeight;
 
@@ -191,9 +193,9 @@ export default function FloorPlan({
         onClick={handleClick}
       >
         <defs>
-          {/* 5x5 meter grid pattern - aligned to bottom-left corner of floor plan */}
+          {/* Grid pattern - aligned to bottom-left corner of floor plan */}
           <pattern
-            id="grid-5m"
+            id="grid-pattern"
             width={gridCellSizePixelsX}
             height={gridCellSizePixelsY}
             patternUnits="userSpaceOnUse"
@@ -203,9 +205,9 @@ export default function FloorPlan({
             <path
               d={`M ${gridCellSizePixelsX} 0 L 0 0 0 ${gridCellSizePixelsY}`}
               fill="none"
-              stroke="rgba(10, 77, 140, 0.12)"
-              strokeWidth="1"
-              strokeDasharray="2,2"
+              stroke="rgba(10, 77, 140, 0.25)"
+              strokeWidth="1.5"
+              strokeDasharray="3,3"
             />
           </pattern>
         </defs>
@@ -245,14 +247,14 @@ export default function FloorPlan({
             ry={8}
           />
           
-          {/* 5x5 meter grid - starts at bottom left (0,0 in local coordinates) */}
+          {/* Grid - starts at bottom left (0,0 in local coordinates) */}
           {showGrid && (
             <rect
               x={floorPlanX}
               y={floorPlanY}
               width={floorPlanWidth}
               height={floorPlanHeight}
-              fill="url(#grid-5m)"
+              fill="url(#grid-pattern)"
             />
           )}
         </g>

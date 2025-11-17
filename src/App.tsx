@@ -23,6 +23,7 @@ function App() {
   const [showTrackables, setShowTrackables] = useLocalStorage('cavea-show-trackables', false);
   const [showFences, setShowFences] = useLocalStorage('cavea-show-fences', true);
   const [showGrid, setShowGrid] = useLocalStorage('cavea-show-grid', true);
+  const [gridSize, setGridSize] = useLocalStorage('cavea-grid-size', 5);
   const [animateMovement, setAnimateMovement] = useLocalStorage('cavea-animate-movement', false);
   const [labelDisplay, setLabelDisplay] = useLocalStorage<LabelDisplayMode>('cavea-label-display', 'full');
 
@@ -161,6 +162,7 @@ function App() {
               showTrackables={showTrackables}
               showFences={showFences}
               showGrid={showGrid}
+              gridSize={gridSize}
               animateMovement={animateMovement}
               labelDisplay={labelDisplay}
               fenceEvents={events}
@@ -198,6 +200,8 @@ function App() {
           onClose={() => setSettingsOpen(false)}
           showGrid={showGrid}
           onShowGridChange={setShowGrid}
+          gridSize={gridSize}
+          onGridSizeChange={setGridSize}
           animateMovement={animateMovement}
           onAnimateMovementChange={setAnimateMovement}
           labelDisplay={labelDisplay}
