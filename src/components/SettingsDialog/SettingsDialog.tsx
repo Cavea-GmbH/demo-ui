@@ -162,6 +162,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       bgcolor: 'white',
                     }}
                   >
+                    <MenuItem value={0.5}>0.5m × 0.5m</MenuItem>
                     <MenuItem value={1}>1m × 1m</MenuItem>
                     <MenuItem value={2.5}>2.5m × 2.5m</MenuItem>
                     <MenuItem value={5}>5m × 5m</MenuItem>
