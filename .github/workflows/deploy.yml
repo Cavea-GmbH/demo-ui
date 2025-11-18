@@ -65,6 +65,15 @@ jobs:
             LOAD_DATA="true"
           fi
           
+          # Determine semantic tag based on branch
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            SEMANTIC_TAG="latest"
+          else
+            SEMANTIC_TAG="dev"
+          fi
+          
+          echo "🏷️  Building image with tags: $IMAGE_TAG and $SEMANTIC_TAG"
+          
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             --build-arg VITE_BUILD_NUMBER="${BUILD_NUM}" \
             --build-arg VITE_BUILD_TIME="${BUILD_TS}" \
@@ -76,9 +85,9 @@ jobs:
             --build-arg VITE_DEMO_FENCES='${{ vars.VITE_DEMO_FENCES }}' \
             .
             
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$SEMANTIC_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$SEMANTIC_TAG
           echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
       - name: Deploy to AWS App Runner
