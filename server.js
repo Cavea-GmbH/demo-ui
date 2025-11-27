@@ -105,13 +105,29 @@ app.get('/events', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   clients.add(res);
+  console.log(`✅ SSE client connected. Total clients: ${clients.size}`);
 
   // Send initial connection message
   res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
 
+  // Send heartbeat every 15 seconds to keep connection alive
+  // This prevents timeouts from proxies, load balancers, and browsers
+  const heartbeatInterval = setInterval(() => {
+    try {
+      // Send SSE comment (ignored by client but keeps connection alive)
+      res.write(`: heartbeat ${Date.now()}\n\n`);
+    } catch (error) {
+      console.error('❌ Error sending heartbeat:', error.message);
+      clearInterval(heartbeatInterval);
+      clients.delete(res);
+    }
+  }, 15000); // 15 seconds
+
   // Clean up on client disconnect
   req.on('close', () => {
+    clearInterval(heartbeatInterval);
     clients.delete(res);
+    console.log(`❌ SSE client disconnected. Total clients: ${clients.size}`);
   });
 });
 
