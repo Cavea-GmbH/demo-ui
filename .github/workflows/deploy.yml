@@ -132,11 +132,25 @@ jobs:
         run: |
           git checkout config/default-config.json
 
-      - name: Deploy to AWS App Runner
+      # Deployment to App Runner - Only for dev environment
+      # Production uses the Docker image directly (deployed elsewhere or on-prem)
+      - name: Deploy to AWS App Runner (Dev only)
+        if: github.ref == 'refs/heads/dev'
         run: |
-          echo "🚀 Deploying to App Runner..."
+          echo "🚀 Deploying to App Runner (Development)..."
           aws apprunner update-service \
             --service-arn ${{ vars.APP_RUNNER_SERVICE_ARN }} \
             --source-configuration "ImageRepository={ImageIdentifier=${{ env.IMAGE_URI }},ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
             --region eu-central-1
+      
+      # Production deployment disabled - Docker image is built and pushed with 'latest' tag
+      # To deploy production: Use the 'latest' tagged image from ECR manually
+      # - name: Deploy to AWS App Runner (Production)
+      #   if: github.ref == 'refs/heads/main'
+      #   run: |
+      #     echo "🚀 Deploying to App Runner (Production)..."
+      #     aws apprunner update-service \
+      #       --service-arn ${{ secrets.PROD_APP_RUNNER_SERVICE_ARN }} \
+      #       --source-configuration "ImageRepository={ImageIdentifier=${{ env.IMAGE_URI }},ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
+      #       --region eu-central-1
 
