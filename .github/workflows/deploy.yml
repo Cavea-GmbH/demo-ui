@@ -1,13 +1,14 @@
 # This workflow builds and deploys the demo-ui to AWS App Runner
-# It triggers on pushes to the 'main' (prod) and 'dev' branches.
+# It uses runtime configuration - different configs for prod/dev baked into the image at build time
+# Customer instances can use the same image with volume-mounted custom configs
 
-name: Deploy to AWS
+name: Deploy Demo to AWS
 
 on:
   push:
     branches:
-      - main
-      - dev
+      - main  # Production
+      - dev   # Development
 
 # Permissions needed for OIDC to work
 permissions:
@@ -31,20 +32,61 @@ jobs:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: eu-central-1
 
-      - name: Create .env file from Secrets and Variables
+      - name: Prepare environment-specific config
         run: |
-          echo "VITE_OMLOX_API_URL=${{ vars.VITE_OMLOX_API_URL }}" > .env
-          # Build metadata
-          echo "VITE_BUILD_NUMBER=${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> .env
-          echo "VITE_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
-          # Control initial demo data loading (configurable via GitHub variable, default: true)
-          echo "VITE_LOAD_INITIAL_DATA=${{ vars.VITE_LOAD_INITIAL_DATA || 'true' }}" >> .env
-          # Floor Plan Configuration
-          echo "VITE_FLOOR_WIDTH=${{ vars.VITE_FLOOR_WIDTH }}" >> .env
-          echo "VITE_FLOOR_LENGTH=${{ vars.VITE_FLOOR_LENGTH }}" >> .env
-          echo "VITE_ZONE_POSITION=${{ vars.VITE_ZONE_POSITION }}" >> .env
-          echo "VITE_GROUND_CONTROL_POINTS=${{ vars.VITE_GROUND_CONTROL_POINTS }}" >> .env
-          echo "VITE_DEMO_FENCES=${{ vars.VITE_DEMO_FENCES }}" >> .env
+          # Environment is automatically selected based on branch
+          # Variables are scoped to the environment (no need for PROD_/DEV_ prefix)
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            ENV="production"
+          else
+            ENV="development"
+          fi
+          
+          FLOOR_WIDTH="${{ vars.FLOOR_WIDTH }}"
+          FLOOR_LENGTH="${{ vars.FLOOR_LENGTH }}"
+          LOAD_DATA="${{ vars.LOAD_INITIAL_DATA }}"
+          FENCES='${{ vars.FENCES }}'
+          ZONE_POSITION='${{ vars.ZONE_POSITION }}'
+          GCP='${{ vars.GROUND_CONTROL_POINTS }}'
+          
+          echo "🔧 Building for $ENV environment"
+          echo "📐 Floor: ${FLOOR_WIDTH}m x ${FLOOR_LENGTH}m"
+          
+          # Create environment-specific config from GitHub variables
+          cat > config/default-config.json <<EOF
+          {
+            "floor": {
+              "width": ${FLOOR_WIDTH},
+              "length": ${FLOOR_LENGTH}
+            },
+            "zone": {
+              "id": null,
+              "position": ${ZONE_POSITION},
+              "groundControlPoints": ${GCP}
+            },
+            "fences": ${FENCES},
+            "initialData": {
+              "loadInitialData": ${LOAD_DATA},
+              "providers": [
+                {"id":"provider-uwb-001","type":"uwb","name":"UWB Tag 1"},
+                {"id":"provider-ble-001","type":"ble-aoa","name":"BLE Tag 1"}
+              ],
+              "trackables": [
+                {"id":"trackable-asset-001","type":"omlox","name":"Asset #001","location_providers":["provider-uwb-001","provider-ble-001"]}
+              ],
+              "locations": {
+                "provider-uwb-001": {"position":{"type":"Point","coordinates":[10,20]},"source":"demo-zone","provider_type":"uwb","provider_id":"provider-uwb-001","crs":"local","floor":0,"accuracy":0.5,"trackables":["trackable-asset-001"]},
+                "provider-ble-001": {"position":{"type":"Point","coordinates":[30,20]},"source":"demo-zone","provider_type":"ble-mesh","provider_id":"provider-ble-001","crs":"local","floor":0,"accuracy":1.5,"trackables":["trackable-asset-001"]},
+                "trackable-asset-001": {"position":{"type":"Point","coordinates":[5,5]},"source":"demo-zone","provider_type":"uwb","provider_id":"provider-uwb-001","crs":"local","floor":0,"accuracy":0.5}
+              }
+            }
+          }
+          EOF
+          
+          # Validate JSON
+          echo "📋 Validating config JSON..."
+          cat config/default-config.json | jq . > /dev/null || exit 1
+          echo "✅ Config validated for $ENV"
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -56,51 +98,59 @@ jobs:
           ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          BUILD_NUM="${GITHUB_RUN_NUMBER}-${GITHUB_SHA:0:7}"
-          BUILD_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          LOAD_DATA="${{ vars.VITE_LOAD_INITIAL_DATA }}"
-          
-          # Default to 'true' if not set
-          if [ -z "$LOAD_DATA" ]; then
-            LOAD_DATA="true"
-          fi
-          
           # Determine semantic tag based on branch
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             SEMANTIC_TAG="latest"
+            ENV_TAG="prod"
           else
             SEMANTIC_TAG="dev"
+            ENV_TAG="dev"
           fi
           
-          echo "🏷️  Building image with tags: $IMAGE_TAG and $SEMANTIC_TAG"
+          echo "🏷️  Building image with tags: $IMAGE_TAG, $SEMANTIC_TAG, $ENV_TAG"
           
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            --build-arg VITE_BUILD_NUMBER="${BUILD_NUM}" \
-            --build-arg VITE_BUILD_TIME="${BUILD_TS}" \
-            --build-arg VITE_LOAD_INITIAL_DATA="${LOAD_DATA}" \
-            --build-arg VITE_FLOOR_WIDTH="${{ vars.VITE_FLOOR_WIDTH }}" \
-            --build-arg VITE_FLOOR_LENGTH="${{ vars.VITE_FLOOR_LENGTH }}" \
-            --build-arg VITE_ZONE_POSITION="${{ vars.VITE_ZONE_POSITION }}" \
-            --build-arg VITE_GROUND_CONTROL_POINTS='${{ vars.VITE_GROUND_CONTROL_POINTS }}' \
-            --build-arg VITE_DEMO_FENCES='${{ vars.VITE_DEMO_FENCES }}' \
-            .
-            
+          # Build with environment-specific config and version info baked in
+          docker build \
+            --build-arg VITE_BUILD_NUMBER="${{ github.sha }}" \
+            --build-arg VITE_BUILD_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          
+          # Tag for easy reference
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$SEMANTIC_TAG
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TAG
+          
+          # Push all tags
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$SEMANTIC_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TAG
+          
           echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+          echo "✅ Images pushed to ECR"
 
-      - name: Deploy to AWS App Runner
+      - name: Restore default config (cleanup)
+        if: always()
         run: |
+          git checkout config/default-config.json
+
+      # Deployment to App Runner - Only for dev environment
+      # Production uses the Docker image directly (deployed elsewhere or on-prem)
+      - name: Deploy to AWS App Runner (Dev only)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          echo "🚀 Deploying to App Runner (Development)..."
           aws apprunner update-service \
             --service-arn ${{ vars.APP_RUNNER_SERVICE_ARN }} \
             --source-configuration "ImageRepository={ImageIdentifier=${{ env.IMAGE_URI }},ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
             --region eu-central-1
+      
+      # Production deployment disabled - Docker image is built and pushed with 'latest' tag
+      # To deploy production: Use the 'latest' tagged image from ECR manually
+      # - name: Deploy to AWS App Runner (Production)
+      #   if: github.ref == 'refs/heads/main'
+      #   run: |
+      #     echo "🚀 Deploying to App Runner (Production)..."
+      #     aws apprunner update-service \
+      #       --service-arn ${{ secrets.PROD_APP_RUNNER_SERVICE_ARN }} \
+      #       --source-configuration "ImageRepository={ImageIdentifier=${{ env.IMAGE_URI }},ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
+      #       --region eu-central-1
 
-      - name: Wait for deployment to complete
-        run: |
-          echo "Waiting for App Runner service to update..."
-          aws apprunner wait service-updated \
-            --service-arn ${{ vars.APP_RUNNER_SERVICE_ARN }} \
-            --region eu-central-1 || true
-          echo "Deployment completed!"

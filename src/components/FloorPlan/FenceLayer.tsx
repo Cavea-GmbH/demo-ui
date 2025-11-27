@@ -1,6 +1,7 @@
 import type { Fence, FenceEvent } from '../../types/omlox';
 import { transformToSVG } from '../../utils/coordinateTransform';
-import { MouseEvent } from 'react';
+import { MouseEvent, useState, useEffect } from 'react';
+import { useConfig } from '../../contexts/ConfigContext';
 
 interface FenceLayerProps {
   fences: Fence[];
@@ -22,8 +23,8 @@ const ENTRY_STROKE = '#4caf50'; // Material green
 const EXIT_FILL = 'rgba(244, 67, 54, 0.25)'; // Red with transparency
 const EXIT_STROKE = '#f44336'; // Material red
 
-// Time window for "recent" events (5 seconds)
-const RECENT_EVENT_WINDOW_MS = 5000;
+// Time window for "recent" events (3 seconds)
+const RECENT_EVENT_WINDOW_MS = 3000;
 
 /**
  * Determine fence color based on recent events
@@ -38,7 +39,7 @@ function getFenceColors(
 ): { fill: string; stroke: string } {
   const now = Date.now();
   
-  // Find recent events for this fence (within last 5 seconds)
+  // Find recent events for this fence (within last 3 seconds)
   // Only include events from visible entities
   const recentEvents = events.filter((event) => {
     if (event.fence_id !== fenceId) return false;
@@ -86,6 +87,45 @@ export default function FenceLayer({
   onFenceClick,
   selectedFenceId = null
 }: FenceLayerProps) {
+  // Get floor dimensions from runtime config
+  const { config } = useConfig();
+  const floorWidth = config?.floor?.width ?? 50;
+  const floorLength = config?.floor?.length ?? 30;
+  
+  // Force re-render to update fence colors after event time window expires
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    // Find the oldest recent event that's still within the time window
+    const now = Date.now();
+    let oldestRecentEventTime: number | null = null;
+
+    events.forEach((event) => {
+      const eventTime = new Date(event.entry_time || event.exit_time || '').getTime();
+      const timeDiff = now - eventTime;
+      
+      // If event is within time window
+      if (timeDiff >= 0 && timeDiff <= RECENT_EVENT_WINDOW_MS) {
+        if (oldestRecentEventTime === null || eventTime < oldestRecentEventTime) {
+          oldestRecentEventTime = eventTime;
+        }
+      }
+    });
+
+    // If we have a recent event, set a timer to update when it expires
+    if (oldestRecentEventTime !== null) {
+      const timeUntilExpiry = RECENT_EVENT_WINDOW_MS - (now - oldestRecentEventTime);
+      
+      if (timeUntilExpiry > 0) {
+        const timer = setTimeout(() => {
+          setTick(tick => tick + 1); // Force re-render
+        }, timeUntilExpiry + 100); // Add 100ms buffer to ensure event has expired
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [events]);
+
   return (
     <g id="fence-layer">
       {fences.map((fence) => {
@@ -93,9 +133,9 @@ export default function FenceLayer({
         
         if (fence.region.type === 'Point' && fence.radius) {
           // Circular fence
-          const [cx, cy] = transformToSVG(fence.region, undefined, undefined, padding);
+          const [cx, cy] = transformToSVG(fence.region, floorWidth, floorLength, padding);
           const availableWidth = 800 - (padding * 2);
-          const radiusPx = fence.radius * (availableWidth / 50); // Scale radius to pixels
+          const radiusPx = fence.radius * (availableWidth / floorWidth); // Scale radius to pixels
 
           return (
             <g 
@@ -142,7 +182,7 @@ export default function FenceLayer({
           const points = ring
             .map((coord) => {
               const point = { type: 'Point' as const, coordinates: [coord[0], coord[1]] as [number, number] };
-              const [x, y] = transformToSVG(point, undefined, undefined, padding);
+              const [x, y] = transformToSVG(point, floorWidth, floorLength, padding);
               return `${x},${y}`;
             })
             .join(' ');
@@ -159,7 +199,7 @@ export default function FenceLayer({
           const [labelX, labelY] = transformToSVG({
             type: 'Point',
             coordinates: [centerX, centerY],
-          }, undefined, undefined, padding);
+          }, floorWidth, floorLength, padding);
 
           return (
             <g 
@@ -195,7 +235,7 @@ export default function FenceLayer({
               {selectedFenceId === fence.id && ring.slice(0, -1).map((coord, idx) => {
                 // Skip the last point as it's the same as the first (closing point)
                 const point = { type: 'Point' as const, coordinates: [coord[0], coord[1]] as [number, number] };
-                const [px, py] = transformToSVG(point, undefined, undefined, padding);
+                const [px, py] = transformToSVG(point, floorWidth, floorLength, padding);
                 
                 return (
                   <g key={`point-${idx}`}>

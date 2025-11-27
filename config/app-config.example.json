@@ -1,0 +1,112 @@
+{
+  "floor": {
+    "width": 50,
+    "length": 30
+  },
+  "zone": {
+    "id": null,
+    "position": [7.815694, 48.130216],
+    "groundControlPoints": [
+      {
+        "wgs84": [7.815694, 48.130216],
+        "local": [0, 0]
+      },
+      {
+        "wgs84": [7.816551, 48.130216],
+        "local": [50, 0]
+      },
+      {
+        "wgs84": [7.815694, 48.13031],
+        "local": [0, 30]
+      },
+      {
+        "wgs84": [7.816551, 48.13031],
+        "local": [50, 30]
+      }
+    ]
+  },
+  "fences": [
+    {
+      "id": "fence-1",
+      "name": "Test Fence 1",
+      "region": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [15, 5],
+            [35, 5],
+            [35, 15],
+            [15, 15],
+            [15, 5]
+          ]
+        ]
+      },
+      "floor": 0,
+      "crs": "local"
+    }
+  ],
+  "initialData": {
+    "loadInitialData": true,
+    "providers": [
+      {
+        "id": "provider-uwb-001",
+        "type": "uwb",
+        "name": "UWB Tag 1"
+      },
+      {
+        "id": "provider-ble-001",
+        "type": "ble-aoa",
+        "name": "BLE Tag 1"
+      }
+    ],
+    "trackables": [
+      {
+        "id": "trackable-asset-001",
+        "type": "omlox",
+        "name": "Asset #001",
+        "location_providers": ["provider-uwb-001", "provider-ble-001"]
+      }
+    ],
+    "locations": {
+      "provider-uwb-001": {
+        "position": {
+          "type": "Point",
+          "coordinates": [10, 20]
+        },
+        "source": "demo-zone",
+        "provider_type": "uwb",
+        "provider_id": "provider-uwb-001",
+        "crs": "local",
+        "floor": 0,
+        "accuracy": 0.5,
+        "trackables": ["trackable-asset-001"]
+      },
+      "provider-ble-001": {
+        "position": {
+          "type": "Point",
+          "coordinates": [30, 20]
+        },
+        "source": "demo-zone",
+        "provider_type": "ble-mesh",
+        "provider_id": "provider-ble-001",
+        "crs": "local",
+        "floor": 0,
+        "accuracy": 1.5,
+        "trackables": ["trackable-asset-001"]
+      },
+      "trackable-asset-001": {
+        "position": {
+          "type": "Point",
+          "coordinates": [5, 5]
+        },
+        "source": "demo-zone",
+        "provider_type": "uwb",
+        "provider_id": "provider-uwb-001",
+        "crs": "local",
+        "floor": 0,
+        "accuracy": 0.5
+      }
+    }
+  }
+}
+

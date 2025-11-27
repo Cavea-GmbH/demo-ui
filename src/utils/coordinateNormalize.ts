@@ -1,12 +1,11 @@
 import type { Location, Point } from '../types/omlox';
-import { ZONE_GEOREFERENCE } from '../config/constants';
-import { wgs84ToLocal } from './georeferencing';
+import { wgs84ToLocal, type ZoneGeoreference } from './georeferencing';
 
 /**
  * Normalize a location to local coordinates
  * Converts WGS84 coordinates to local if needed
  */
-export function normalizeLocationToLocal(location: Location): Location {
+export function normalizeLocationToLocal(location: Location, zoneGeoreference: ZoneGeoreference): Location {
   const crs = location.crs || 'local';
   
   // If already local, return as-is
@@ -19,9 +18,9 @@ export function normalizeLocationToLocal(location: Location): Location {
     try {
       const [lon, lat] = location.position.coordinates as [number, number];
       console.log(`🌍 Transforming WGS84 coordinates [${lon}, ${lat}] to local coordinates...`);
-      console.log(`   Using ${ZONE_GEOREFERENCE.groundControlPoints.length} ground control points`);
+      console.log(`   Using ${zoneGeoreference.groundControlPoints.length} ground control points`);
       
-      const localPosition = wgs84ToLocal(location.position, ZONE_GEOREFERENCE);
+      const localPosition = wgs84ToLocal(location.position, zoneGeoreference);
       const [localX, localY] = localPosition.coordinates as [number, number];
       
       // Validate transformed coordinates are reasonable

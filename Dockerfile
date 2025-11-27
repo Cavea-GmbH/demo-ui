@@ -12,29 +12,13 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Accept build arguments for build metadata
-ARG VITE_BUILD_NUMBER
-ARG VITE_BUILD_TIME
+# Build arguments for version information (baked into frontend bundle)
+ARG VITE_BUILD_NUMBER=dev
+ARG VITE_BUILD_TIME=unknown
 
-# Accept build arguments for floor configuration and demo data
-ARG VITE_LOAD_INITIAL_DATA
-ARG VITE_FLOOR_WIDTH
-ARG VITE_FLOOR_LENGTH
-ARG VITE_ZONE_ID
-ARG VITE_ZONE_POSITION
-ARG VITE_GROUND_CONTROL_POINTS
-ARG VITE_DEMO_FENCES
-
-# Pass build arguments as environment variables for Vite build
-ENV VITE_BUILD_NUMBER=$VITE_BUILD_NUMBER
-ENV VITE_BUILD_TIME=$VITE_BUILD_TIME
-ENV VITE_LOAD_INITIAL_DATA=$VITE_LOAD_INITIAL_DATA
-ENV VITE_FLOOR_WIDTH=$VITE_FLOOR_WIDTH
-ENV VITE_FLOOR_LENGTH=$VITE_FLOOR_LENGTH
-ENV VITE_ZONE_ID=$VITE_ZONE_ID
-ENV VITE_ZONE_POSITION=$VITE_ZONE_POSITION
-ENV VITE_GROUND_CONTROL_POINTS=$VITE_GROUND_CONTROL_POINTS
-ENV VITE_DEMO_FENCES=$VITE_DEMO_FENCES
+# Set as environment variables for Vite to pick up during build
+ENV VITE_BUILD_NUMBER=${VITE_BUILD_NUMBER}
+ENV VITE_BUILD_TIME=${VITE_BUILD_TIME}
 
 # Build the frontend application
 RUN npm run build
@@ -59,8 +43,14 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY server.js ./
 
+# Copy default configuration into image
+COPY --from=builder /app/config /app/config
+
 # Install only production dependencies for proxy server
 RUN npm ci --only=production
+
+# Create /config directory for optional volume-mounted custom config
+RUN mkdir -p /config
 
 # Create supervisor configuration
 RUN mkdir -p /etc/supervisor.d
