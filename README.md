@@ -235,6 +235,20 @@ The Docker container runs two processes managed by Supervisor:
 
 The demo instance is automatically deployed to AWS App Runner using GitHub Actions.
 
+### Docker Image Repositories
+
+We use separate AWS ECR repositories for production and development:
+
+- **Production**: `343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
+  - Tagged with `latest` and `prod`
+  - Built from `main` branch
+  - For stable releases and customer deployments
+
+- **Development**: `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
+  - Tagged with `dev`
+  - Built from `dev` branch
+  - For testing and preview features
+
 ### Deployment Flow
 
 1. **GitHub Actions Workflow** (`.github/workflows/deploy.yml`):
@@ -246,7 +260,8 @@ The demo instance is automatically deployed to AWS App Runner using GitHub Actio
    - Triggers AWS App Runner service update
 
 2. **AWS Resources**:
-   - **ECR Repository**: `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
+   - **ECR Repository (Production)**: `343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
+   - **ECR Repository (Development)**: `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
    - **App Runner Service**: `cavea-demo-ui-dev` (dev environment)
    - **Service URL**: [https://vipmm8ztjz.eu-central-1.awsapprunner.com/](https://vipmm8ztjz.eu-central-1.awsapprunner.com/)
 
@@ -270,23 +285,41 @@ See [`docs/GITHUB_SETUP.md`](docs/GITHUB_SETUP.md) for complete setup instructio
 
 If needed, you can manually deploy:
 
+**Development:**
 ```bash
-# Login to ECR
+# Login to ECR (Development account)
 aws ecr get-login-password --region eu-central-1 | \
   docker login --username AWS --password-stdin 116981770603.dkr.ecr.eu-central-1.amazonaws.com
 
 # Build and tag
 docker build -t cavea-demo-ui .
-docker tag cavea-demo-ui:latest 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+docker tag cavea-demo-ui:latest 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev
 
 # Push to ECR
-docker push 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+docker push 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev
 
 # Update App Runner service
 aws apprunner update-service \
   --service-arn arn:aws:apprunner:eu-central-1:116981770603:service/cavea-demo-ui-dev/a846c46c6d724d3fa51dbccd3be40cb9 \
-  --source-configuration "ImageRepository={ImageIdentifier=116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest,ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
+  --source-configuration "ImageRepository={ImageIdentifier=116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev,ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
   --region eu-central-1
+```
+
+**Production:**
+```bash
+# Login to ECR (Production account)
+aws ecr get-login-password --region eu-central-1 | \
+  docker login --username AWS --password-stdin 343218205164.dkr.ecr.eu-central-1.amazonaws.com
+
+# Build and tag
+docker build -t cavea-demo-ui .
+docker tag cavea-demo-ui:latest 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+
+# Push to ECR
+docker push 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+
+# Production is deployed manually (not via App Runner)
+# Use the 'latest' tag to deploy to your production environment
 ```
 
 ## Configuration
