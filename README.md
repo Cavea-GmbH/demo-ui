@@ -235,6 +235,20 @@ The Docker container runs two processes managed by Supervisor:
 
 The demo instance is automatically deployed to AWS App Runner using GitHub Actions.
 
+### Docker Image Repositories
+
+We use separate AWS ECR repositories for production and development:
+
+- **Production**: `343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
+  - Tagged with `latest` and `prod`
+  - Built from `main` branch
+  - For stable releases and customer deployments
+
+- **Development**: `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
+  - Tagged with `dev`
+  - Built from `dev` branch
+  - For testing and preview features
+
 ### Deployment Flow
 
 1. **GitHub Actions Workflow** (`.github/workflows/deploy.yml`):
@@ -246,7 +260,8 @@ The demo instance is automatically deployed to AWS App Runner using GitHub Actio
    - Triggers AWS App Runner service update
 
 2. **AWS Resources**:
-   - **ECR Repository**: `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
+   - **ECR Repository (Production)**: `343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
+   - **ECR Repository (Development)**: `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
    - **App Runner Service**: `cavea-demo-ui-dev` (dev environment)
    - **Service URL**: [https://vipmm8ztjz.eu-central-1.awsapprunner.com/](https://vipmm8ztjz.eu-central-1.awsapprunner.com/)
 
@@ -270,23 +285,41 @@ See [`docs/GITHUB_SETUP.md`](docs/GITHUB_SETUP.md) for complete setup instructio
 
 If needed, you can manually deploy:
 
+**Development:**
 ```bash
-# Login to ECR
+# Login to ECR (Development account)
 aws ecr get-login-password --region eu-central-1 | \
   docker login --username AWS --password-stdin 116981770603.dkr.ecr.eu-central-1.amazonaws.com
 
 # Build and tag
 docker build -t cavea-demo-ui .
-docker tag cavea-demo-ui:latest 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+docker tag cavea-demo-ui:latest 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev
 
 # Push to ECR
-docker push 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+docker push 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev
 
 # Update App Runner service
 aws apprunner update-service \
   --service-arn arn:aws:apprunner:eu-central-1:116981770603:service/cavea-demo-ui-dev/a846c46c6d724d3fa51dbccd3be40cb9 \
-  --source-configuration "ImageRepository={ImageIdentifier=116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest,ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
+  --source-configuration "ImageRepository={ImageIdentifier=116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev,ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
   --region eu-central-1
+```
+
+**Production:**
+```bash
+# Login to ECR (Production account)
+aws ecr get-login-password --region eu-central-1 | \
+  docker login --username AWS --password-stdin 343218205164.dkr.ecr.eu-central-1.amazonaws.com
+
+# Build and tag
+docker build -t cavea-demo-ui .
+docker tag cavea-demo-ui:latest 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+
+# Push to ECR
+docker push 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+
+# Production is deployed manually (not via App Runner)
+# Use the 'latest' tag to deploy to your production environment
 ```
 
 ## Configuration
@@ -363,8 +396,8 @@ demo-ui/
 │   │   ├── coordinateNormalize.ts  # WGS84 to local conversion
 │   │   ├── georeferencing.ts       # Affine transformation math
 │   │   └── uuid.ts                 # UUID/ID generation
-│   ├── config/                     # Configuration
-│   │   └── constants.ts            # Floor plan, fences, demo data
+│   ├── config/                     # Configuration (deprecated)
+│   │   └── constants.ts            # Legacy constants (see config/README.md for runtime config)
 │   ├── App.tsx                     # Root application component
 │   └── main.tsx                    # Application entry point
 ├── public/                         # Static assets
@@ -460,11 +493,11 @@ All fence events are logged in the **Event Log** with timestamps and entity deta
 ### WGS84 Coordinates (CRS: `EPSG:4326`)
 - Format: [longitude, latitude]
 - Automatically converted to local coordinates using affine transformation
-- Ground control points defined in `constants.ts`
+- Ground control points configured via runtime configuration (see [`config/README.md`](config/README.md))
 
 ### Georeferencing
 
-The application uses 4 ground control points to map WGS84 coordinates to the local floor plan. Edit `ZONE_GEOREFERENCE` in `constants.ts` to match your real-world location.
+The application uses ground control points to map WGS84 coordinates to the local floor plan. Configure these points in your runtime configuration JSON file to match your real-world location (see [`config/README.md`](config/README.md)).
 
 ## Development Notes
 
@@ -486,9 +519,10 @@ The application uses 4 ground control points to map WGS84 coordinates to the loc
 ### Troubleshooting
 
 - **SSE not connecting**: Check browser console for errors, ensure proxy server is running on port 3001
-- **Markers not appearing**: Check that `VITE_LOAD_INITIAL_DATA=true` or create entities via UI
-- **Coordinates off**: Verify georeferencing settings in `constants.ts` match your location
+- **Markers not appearing**: Check runtime configuration via `/api/config` - ensure `initialData.loadInitialData` is `true` or create entities via UI
+- **Coordinates off**: Verify georeferencing settings in runtime config match your location (see [`config/README.md`](config/README.md))
 - **Build errors**: Run `npm ci` to install exact dependency versions
+- **Full troubleshooting guide**: See [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
 
 ## Future Enhancements
 

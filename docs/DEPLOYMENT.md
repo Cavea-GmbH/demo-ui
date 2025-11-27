@@ -23,6 +23,18 @@ The application consists of:
 - **Backend**: Node.js proxy server for SSE and API (port 3001)
 - **Supervisor**: Process manager running both services in the container
 
+### Docker Image Repositories
+
+We maintain two separate ECR repositories:
+
+- **Production**: `343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest`
+  - For stable releases and customer deployments
+  - Built from `main` branch
+
+- **Development**: `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev`
+  - For testing and preview features
+  - Built from `dev` branch
+
 ### Configuration Approach
 
 - Configuration is loaded at **runtime** from JSON files
@@ -169,17 +181,32 @@ services:
 
 ### Build and Push Image
 
+**Production:**
 ```bash
-# Login to ECR
+# Login to ECR (Production account)
 aws ecr get-login-password --region eu-central-1 | \
-  docker login --username AWS --password-stdin <account-id>.dkr.ecr.eu-central-1.amazonaws.com
+  docker login --username AWS --password-stdin 343218205164.dkr.ecr.eu-central-1.amazonaws.com
 
 # Build and tag image
 docker build -t demo-ui:latest .
-docker tag demo-ui:latest <account-id>.dkr.ecr.eu-central-1.amazonaws.com/demo-ui:latest
+docker tag demo-ui:latest 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
 
 # Push to ECR
-docker push <account-id>.dkr.ecr.eu-central-1.amazonaws.com/demo-ui:latest
+docker push 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+```
+
+**Development:**
+```bash
+# Login to ECR (Development account)
+aws ecr get-login-password --region eu-central-1 | \
+  docker login --username AWS --password-stdin 116981770603.dkr.ecr.eu-central-1.amazonaws.com
+
+# Build and tag image
+docker build -t demo-ui:dev .
+docker tag demo-ui:dev 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev
+
+# Push to ECR
+docker push 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev
 ```
 
 ### ECS Task Definition
@@ -196,7 +223,7 @@ Create a task definition JSON:
   "containerDefinitions": [
     {
       "name": "demo-ui",
-      "image": "<account-id>.dkr.ecr.eu-central-1.amazonaws.com/demo-ui:latest",
+      "image": "343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest",
       "portMappings": [
         {
           "containerPort": 80,
@@ -269,9 +296,9 @@ aws ecs create-service \
 
 ## AWS App Runner
 
-App Runner can still be used but has limitations with volume mounts. Configuration must be embedded in the image or passed via environment variables.
+App Runner can still be used but has limitations with volume mounts. Configuration must be embedded in the image.
 
-See [_concept/AWS_SETUP.md](_concept/AWS_SETUP.md) for App Runner-specific instructions.
+See [docs/AWS_SETUP.md](AWS_SETUP.md) for App Runner-specific instructions.
 
 ## Kubernetes
 
@@ -513,7 +540,8 @@ docker-compose up --scale demo-ui=3
 
 ## Next Steps
 
-- Review [config/README.md](config/README.md) for configuration details
-- Check [_concept/AWS_SETUP.md](_concept/AWS_SETUP.md) for AWS-specific guidance
+- Review [config/README.md](../config/README.md) for configuration details
+- Check [docs/AWS_SETUP.md](AWS_SETUP.md) for AWS-specific guidance
+- See [docs/CUSTOMER_DEPLOYMENT.md](CUSTOMER_DEPLOYMENT.md) for customer-specific deployments
 - Set up monitoring and alerting for production deployments
 

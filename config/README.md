@@ -311,8 +311,10 @@ Required fields:
 
 ## See Also
 
-- [DEPLOYMENT.md](../DEPLOYMENT.md) - Deployment guide for different platforms
-- [_concept/AWS_SETUP.md](../_concept/AWS_SETUP.md) - AWS-specific deployment guide
+- [DEPLOYMENT.md](../docs/DEPLOYMENT.md) - Deployment guide for different platforms
+- [AWS_SETUP.md](../docs/AWS_SETUP.md) - AWS-specific deployment guide
+- [CUSTOMER_DEPLOYMENT.md](../docs/CUSTOMER_DEPLOYMENT.md) - Customer deployment guide
+
 
 
 

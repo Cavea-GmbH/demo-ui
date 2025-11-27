@@ -36,7 +36,7 @@ This means the frontend app is **not connected** to the proxy server.
 4. **If You See Connection Errors:**
    - **CORS Error**: Make sure proxy server has CORS enabled (it should)
    - **Connection Refused**: Proxy server not running
-   - **404 Not Found**: Wrong URL - check `VITE_PROXY_SERVER_URL` in `.env`
+   - **404 Not Found**: Wrong URL - proxy server should be on `http://localhost:3001/events`
 
 5. **Test Connection Manually**
    - Open browser and go to: `http://localhost:3001/health`
@@ -57,9 +57,9 @@ This means the frontend app is **not connected** to the proxy server.
 ### Check:
 
 1. **Coordinates are valid:**
-   - X: 0-50 meters
-   - Y: 0-30 meters
-   - Your example `[25, 15]` is valid ✅
+   - Coordinates should be within your configured floor dimensions
+   - Example: For a 50m x 30m floor, X: 0-50 meters, Y: 0-30 meters
+   - Check your config at `/api/config` to see your floor dimensions
 
 2. **Check Browser Console:**
    - Should see: `📍 Updating provider location: 0080E126`
@@ -104,7 +104,7 @@ Postman Request → Proxy Server → SSE → Frontend App
 
 ### 2. Wrong Port
 - **Symptom**: Connection errors
-- **Fix**: Check proxy server is on port 3001, or set `VITE_PROXY_SERVER_URL` in `.env`
+- **Fix**: Check proxy server is on port 3001
 
 ### 3. CORS Issues
 - **Symptom**: Browser console shows CORS error
@@ -112,7 +112,7 @@ Postman Request → Proxy Server → SSE → Frontend App
 
 ### 4. Coordinates Out of Bounds
 - **Symptom**: Provider created but not visible
-- **Fix**: Use coordinates between 0-50 (X) and 0-30 (Y)
+- **Fix**: Check your floor dimensions via `/api/config` and ensure coordinates are within bounds
 
 ---
 
@@ -125,5 +125,5 @@ Postman Request → Proxy Server → SSE → Frontend App
 - [ ] Browser console shows "Received provider location"
 - [ ] Browser console shows "Auto-creating provider"
 - [ ] Top bar shows provider count > 0
-- [ ] Coordinates are within bounds (0-50, 0-30)
+- [ ] Coordinates are within your configured floor bounds (check `/api/config`)
 

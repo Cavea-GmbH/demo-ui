@@ -6,6 +6,22 @@ This guide explains how to deploy the demo-ui application for customer-specific 
 
 The application is distributed as a Docker image that can be deployed anywhere Docker runs. Each customer instance can have its own configuration by mounting a custom config file, without requiring a rebuild of the Docker image.
 
+### Docker Image Repositories
+
+We maintain two separate ECR repositories for different purposes:
+
+- **Production (stable releases)**: `343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest`
+  - Use this for customer deployments
+  - Built from `main` branch
+  - Tested and stable releases only
+
+- **Development (preview/testing)**: `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev`
+  - For internal testing and preview features
+  - Built from `dev` branch
+  - May contain experimental features
+
+> **For customer deployments, always use the Production repository with the `latest` tag.**
+
 ## Prerequisites
 
 - Docker installed (version 20.10 or later)
@@ -35,17 +51,30 @@ See [`config/README.md`](../config/README.md) for detailed configuration schema 
 
 #### Option A: Pull from AWS ECR (if you have access)
 
+**Production (stable releases):**
 ```bash
 # Configure AWS credentials
 aws configure
 
-# Login to ECR
+# Login to ECR (Production account)
 aws ecr get-login-password --region eu-central-1 | \
-  docker login --username AWS --password-stdin <account-id>.dkr.ecr.eu-central-1.amazonaws.com
+  docker login --username AWS --password-stdin 343218205164.dkr.ecr.eu-central-1.amazonaws.com
 
 # Pull the latest stable image
-docker pull <account-id>.dkr.ecr.eu-central-1.amazonaws.com/demo-ui:latest
+docker pull 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
 ```
+
+**Development (testing/preview features):**
+```bash
+# Login to ECR (Development account)
+aws ecr get-login-password --region eu-central-1 | \
+  docker login --username AWS --password-stdin 116981770603.dkr.ecr.eu-central-1.amazonaws.com
+
+# Pull the development image
+docker pull 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev
+```
+
+> **Note:** For customer deployments, use the **Production** image (`343218205164`) tagged with `latest` for stable, tested releases.
 
 #### Option B: Load from provided image file
 
@@ -69,7 +98,7 @@ docker run -d \
   -p 80:80 \
   -v $(pwd)/customer-config.json:/config/app-config.json:ro \
   --restart unless-stopped \
-  <account-id>.dkr.ecr.eu-central-1.amazonaws.com/demo-ui:latest
+  343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
 ```
 
 **Parameters explained:**
@@ -78,7 +107,7 @@ docker run -d \
 - `-p 80:80`: Map port 80 (host) to port 80 (container)
 - `-v $(pwd)/customer-config.json:/config/app-config.json:ro`: Mount your config (read-only)
 - `--restart unless-stopped`: Auto-restart on system reboot
-- Image name (replace `<account-id>` with your AWS account ID)
+- Image: Production ECR repository with `latest` tag
 
 #### Alternative port (if port 80 is in use):
 
@@ -187,7 +216,7 @@ version: '3.8'
 
 services:
   demo-ui:
-    image: <account-id>.dkr.ecr.eu-central-1.amazonaws.com/demo-ui:latest
+    image: 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
     container_name: demo-ui-customer
     ports:
       - "80:80"
@@ -388,8 +417,8 @@ docker inspect demo-ui-customer
 ### Update to newer version:
 
 ```bash
-# Pull latest image
-docker pull <account-id>.dkr.ecr.eu-central-1.amazonaws.com/demo-ui:latest
+# Pull latest image (Production)
+docker pull 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
 
 # Stop and remove old container
 docker stop demo-ui-customer
@@ -401,7 +430,7 @@ docker run -d \
   -p 80:80 \
   -v $(pwd)/customer-config.json:/config/app-config.json:ro \
   --restart unless-stopped \
-  <account-id>.dkr.ecr.eu-central-1.amazonaws.com/demo-ui:latest
+  343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
 ```
 
 ## Troubleshooting
@@ -540,6 +569,7 @@ See `config/app-config.example.json` for a complete example with fences and demo
 - Volume-mounted config files
 - Improved deployment flexibility
 - Better multi-instance support
+
 
 
 

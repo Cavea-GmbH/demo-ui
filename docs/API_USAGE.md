@@ -64,7 +64,7 @@ Content-Type: application/json
 }
 ```
 
-**Note:** When using WGS84 coordinates, the application automatically transforms them to local coordinates using the configured ground control points. The floor plan must be georeferenced (see configuration in `src/config/constants.ts`).
+**Note:** When using WGS84 coordinates, the application automatically transforms them to local coordinates using the configured ground control points. The floor plan must be georeferenced (see configuration guide in [`config/README.md`](../config/README.md)).
 
 **Error Example - Mismatched IDs:**
 ```http
@@ -97,13 +97,13 @@ Content-Type: application/json
 
 ### Georeferencing
 
-The floor plan is georeferenced using ground control points that map WGS84 coordinates to local coordinates. The georeferencing configuration is defined in `src/config/constants.ts`:
+The floor plan is georeferenced using ground control points that map WGS84 coordinates to local coordinates. The georeferencing configuration is loaded at runtime from the application's JSON configuration file (see [`config/README.md`](../config/README.md)):
 
 - **Zone Position**: The zone's position in WGS84 (EPSG:4326)
 - **Ground Control Points**: Array of mappings between WGS84 (lon, lat) and local (x, y) coordinates
 
 When a location update is received with `crs: "EPSG:4326"`, the application:
-1. Transforms the WGS84 coordinates to local coordinates using the ground control points
+1. Transforms the WGS84 coordinates to local coordinates using the configured ground control points
 2. Updates the location's `crs` field to `"local"`
 3. Displays the position on the floor plan using the transformed local coordinates
 
