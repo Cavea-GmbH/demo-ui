@@ -46,3 +46,4 @@ export interface AppConfig {
   initialData: InitialDataConfig;
 }
 
+

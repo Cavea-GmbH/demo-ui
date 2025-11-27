@@ -59,6 +59,24 @@ A lightweight, real-time demo UI for showcasing indoor Real-Time Location System
 - **Docker** (for containerized deployment)
 - **AWS Account** with appropriate permissions (for production deployment)
 
+## Deployment Options
+
+This application supports flexible deployment with **runtime configuration**:
+
+### 📦 Demo Instance (Automated CI/CD)
+- **Production & Development environments** with GitHub Actions
+- Automatic deployment to AWS App Runner
+- Environment-specific configs via GitHub variables
+- See: [`docs/GITHUB_SETUP.md`](docs/GITHUB_SETUP.md)
+
+### 🏢 Customer Instances (Manual)
+- **Docker-based deployment** with custom configuration files
+- Same image for all customers, different configs via volume mounts
+- Works on-premises, cloud, or anywhere Docker runs
+- See: [`docs/CUSTOMER_DEPLOYMENT.md`](docs/CUSTOMER_DEPLOYMENT.md)
+
+---
+
 ## Local Development
 
 ### 1. Install Dependencies
@@ -67,7 +85,33 @@ A lightweight, real-time demo UI for showcasing indoor Real-Time Location System
 npm install
 ```
 
-### 2. Configure Environment Variables
+### 2. Configure Application (Optional)
+
+The application uses runtime configuration. For local development:
+
+**Option A:** Use default configuration (no setup needed)
+```bash
+# Just run - uses built-in defaults
+npm run dev:all
+```
+
+**Option B:** Create custom local configuration
+```bash
+# Copy example config
+cp config/app-config.example.json config/app-config.json
+
+# Edit with your values
+nano config/app-config.json
+
+# Run with custom config
+npm run dev:all
+```
+
+See [`config/README.md`](config/README.md) for detailed configuration options.
+
+### 3. (Legacy) Environment Variables
+
+For backward compatibility, you can still use `.env` for some settings:
 
 Create a `.env` file in the project root:
 
@@ -104,7 +148,7 @@ VITE_DEMO_FENCES=[{"id":"fence-1","name":"Test Fence 1","region":{"type":"Polygo
 - The backend is **standalone** - it maintains all data in-memory (no external Hub needed)
 - Floor configuration is optional - see **[FLOOR_CONFIG.md](./FLOOR_CONFIG.md)** for detailed setup guide
 
-### 3. Start Development Servers
+### 4. Start Development Servers
 
 Run both the frontend and backend proxy concurrently:
 
@@ -127,7 +171,7 @@ The application will be available at:
 - **Backend Proxy**: `http://localhost:3001`
 - **SSE Events**: `http://localhost:3001/events`
 
-### 4. Send Location Data
+### 5. Send Location Data
 
 Send location updates via the proxy server using Postman, cURL, or any HTTP client:
 
@@ -173,7 +217,7 @@ curl -X PUT http://localhost:3001/api/trackables/550e8400-e29b-41d4-a716-4466554
   }'
 ```
 
-### 5. Build for Production
+### 6. Build for Production
 
 ```bash
 npm run build
@@ -183,23 +227,22 @@ The built files will be in the `dist/` directory.
 
 ## Docker Deployment
 
-### Local Docker Build and Run
-
-The Docker image uses a multi-stage build that includes:
-1. **Builder stage**: Builds the React frontend
-2. **Production stage**: Sets up Nginx, Node.js proxy, and Supervisor
+### Quick Start with Docker
 
 ```bash
 # Build the Docker image
-docker build -t cavea-demo-ui .
+docker build -t demo-ui .
 
-# Run the container
-docker run -p 80:80 -p 3001:3001 cavea-demo-ui
+# Run with default configuration
+docker run -p 80:80 demo-ui
+
+# Run with custom configuration
+docker run -p 80:80 \
+  -v $(pwd)/config/my-config.json:/config/app-config.json:ro \
+  demo-ui
 ```
 
-The application will be available at:
-- **Frontend**: `http://localhost`
-- **Backend Proxy**: `http://localhost:3001`
+The application will be available at `http://localhost`
 
 ### Architecture
 
@@ -207,9 +250,15 @@ The Docker container runs two processes managed by Supervisor:
 - **Nginx** (port 80): Serves the React frontend and proxies `/api/*` and `/events` to the Node.js backend
 - **Node.js Express** (port 3001): Receives location data via POST and forwards to frontend via SSE
 
-## Production Deployment (AWS App Runner)
+### Deployment Guides
 
-The application is automatically deployed to AWS App Runner using GitHub Actions on every push to the `dev` or `main` branch.
+- **Customer Deployments**: See [`docs/CUSTOMER_DEPLOYMENT.md`](docs/CUSTOMER_DEPLOYMENT.md) for detailed Docker deployment instructions
+- **AWS Deployment**: See [`docs/AWS_SETUP.md`](docs/AWS_SETUP.md) for AWS ECS/Fargate and App Runner setup
+- **General Guide**: See [`DEPLOYMENT.md`](DEPLOYMENT.md) for all deployment options
+
+## Production Deployment (Automated CI/CD)
+
+The demo instance is automatically deployed to AWS App Runner using GitHub Actions.
 
 ### Deployment Flow
 
