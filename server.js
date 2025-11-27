@@ -8,11 +8,84 @@
 
 import express from 'express';
 import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// ============================================================================
+// Configuration Loading
+// ============================================================================
+
+let appConfig = null;
+
+/**
+ * Load application configuration from file system
+ * Priority: 1) Volume-mounted config, 2) Local config (dev), 3) Built-in default config
+ */
+function loadConfig() {
+  // 1. Try volume-mounted config first (for Docker deployments)
+  const volumeConfigPath = '/config/app-config.json';
+  if (fs.existsSync(volumeConfigPath)) {
+    console.log('📁 Loading config from volume: /config/app-config.json');
+    try {
+      const configData = fs.readFileSync(volumeConfigPath, 'utf8');
+      return JSON.parse(configData);
+    } catch (error) {
+      console.error('❌ Error reading volume config:', error.message);
+      console.log('⚠️ Falling back to next config source');
+    }
+  }
+  
+  // 2. Try local config file (for local development)
+  const localConfigPath = path.join(__dirname, 'config', 'app-config.json');
+  if (fs.existsSync(localConfigPath)) {
+    console.log('📝 Loading local config: ./config/app-config.json');
+    try {
+      const configData = fs.readFileSync(localConfigPath, 'utf8');
+      return JSON.parse(configData);
+    } catch (error) {
+      console.error('❌ Error reading local config:', error.message);
+      console.log('⚠️ Falling back to default config');
+    }
+  }
+  
+  // 3. Fall back to built-in default config
+  const defaultConfigPath = path.join(__dirname, 'config', 'default-config.json');
+  if (fs.existsSync(defaultConfigPath)) {
+    console.log('📦 Loading built-in default config');
+    try {
+      const configData = fs.readFileSync(defaultConfigPath, 'utf8');
+      return JSON.parse(configData);
+    } catch (error) {
+      console.error('❌ Error reading default config:', error.message);
+      throw new Error('No valid configuration found!');
+    }
+  }
+  
+  throw new Error('No configuration file found! Expected /config/app-config.json, ./config/app-config.json, or built-in default.');
+}
+
+// Load config on startup
+try {
+  appConfig = loadConfig();
+  console.log('✅ Configuration loaded successfully');
+  console.log(`   Floor: ${appConfig.floor.width}m x ${appConfig.floor.length}m`);
+  console.log(`   Zone: ${appConfig.zone.id || 'default'}`);
+  console.log(`   Fences: ${appConfig.fences.length}`);
+  console.log(`   Initial data: ${appConfig.initialData.loadInitialData ? 'enabled' : 'disabled'}`);
+} catch (error) {
+  console.error('❌ Failed to load configuration:', error.message);
+  console.error('   Application cannot start without valid configuration');
+  process.exit(1);
+}
 
 // Store connected clients for SSE
 const clients = new Set();
@@ -145,10 +218,23 @@ app.put('/api/trackables/:trackableId/location', (req, res) => {
   res.status(204).send();
 });
 
+// Configuration endpoint - serves runtime config to frontend
+app.get('/api/config', (req, res) => {
+  if (!appConfig) {
+    return res.status(500).json({
+      error: 'Configuration not loaded',
+      message: 'Server configuration is not available',
+    });
+  }
+  
+  res.json(appConfig);
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
+    configLoaded: !!appConfig,
     clientsConnected: clients.size,
     providersCount: providers.size,
     trackablesCount: trackables.size,

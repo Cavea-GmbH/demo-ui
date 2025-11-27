@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ThemeProvider, CssBaseline, Box } from '@mui/material';
+import { ThemeProvider, CssBaseline, Box, CircularProgress, Typography, Alert } from '@mui/material';
 import { theme } from './theme/theme';
+import { ConfigProvider, useConfig } from './contexts/ConfigContext';
 import { useLocationReceiver } from './hooks/useLocationReceiver';
 import { useFenceEvents } from './hooks/useFenceEvents';
 import { useLocalStorage } from './hooks/useLocalStorage';
@@ -12,7 +13,7 @@ import Sidebar from './components/Sidebar/Sidebar';
 import { SettingsDialog, LabelDisplayMode } from './components/SettingsDialog/SettingsDialog';
 import type { LocationProvider, Trackable } from './types/omlox';
 
-function App() {
+function AppContent() {
   const [isConnected, setIsConnected] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarTab, setSidebarTab] = useState(0);
@@ -107,12 +108,60 @@ function App() {
     removeTrackable(trackableId);
   };
 
+  // Check if config is loaded
+  const { config, isLoading, error } = useConfig();
+
+  // Show loading state while config is being fetched
+  if (isLoading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          gap: 2,
+        }}
+      >
+        <CircularProgress size={60} />
+        <Typography variant="h6" color="text.secondary">
+          Loading configuration...
+        </Typography>
+      </Box>
+    );
+  }
+
+  // Show error state if config failed to load
+  if (error || !config) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          gap: 2,
+          p: 4,
+        }}
+      >
+        <Alert severity="error" sx={{ maxWidth: 600 }}>
+          <Typography variant="h6" gutterBottom>
+            Failed to Load Configuration
+          </Typography>
+          <Typography variant="body2">
+            {error?.message || 'Unable to load application configuration. Please check the server.'}
+          </Typography>
+        </Alert>
+      </Box>
+    );
+  }
+
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-        {/* Top Bar */}
-        <TopBar
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* Top Bar */}
+      <TopBar
           isConnected={isConnected}
           isLoading={false}
           pollingEnabled={false}
@@ -208,6 +257,16 @@ function App() {
           onLabelDisplayChange={setLabelDisplay}
         />
       </Box>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <ConfigProvider>
+        <AppContent />
+      </ConfigProvider>
     </ThemeProvider>
   );
 }

@@ -1,6 +1,6 @@
 import type { Fence, FenceEvent } from '../../types/omlox';
 import { transformToSVG } from '../../utils/coordinateTransform';
-import { MouseEvent } from 'react';
+import { MouseEvent, useState, useEffect } from 'react';
 
 interface FenceLayerProps {
   fences: Fence[];
@@ -22,8 +22,8 @@ const ENTRY_STROKE = '#4caf50'; // Material green
 const EXIT_FILL = 'rgba(244, 67, 54, 0.25)'; // Red with transparency
 const EXIT_STROKE = '#f44336'; // Material red
 
-// Time window for "recent" events (5 seconds)
-const RECENT_EVENT_WINDOW_MS = 5000;
+// Time window for "recent" events (3 seconds)
+const RECENT_EVENT_WINDOW_MS = 3000;
 
 /**
  * Determine fence color based on recent events
@@ -38,7 +38,7 @@ function getFenceColors(
 ): { fill: string; stroke: string } {
   const now = Date.now();
   
-  // Find recent events for this fence (within last 5 seconds)
+  // Find recent events for this fence (within last 3 seconds)
   // Only include events from visible entities
   const recentEvents = events.filter((event) => {
     if (event.fence_id !== fenceId) return false;
@@ -86,6 +86,40 @@ export default function FenceLayer({
   onFenceClick,
   selectedFenceId = null
 }: FenceLayerProps) {
+  // Force re-render to update fence colors after event time window expires
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    // Find the oldest recent event that's still within the time window
+    const now = Date.now();
+    let oldestRecentEventTime: number | null = null;
+
+    events.forEach((event) => {
+      const eventTime = new Date(event.entry_time || event.exit_time || '').getTime();
+      const timeDiff = now - eventTime;
+      
+      // If event is within time window
+      if (timeDiff >= 0 && timeDiff <= RECENT_EVENT_WINDOW_MS) {
+        if (oldestRecentEventTime === null || eventTime < oldestRecentEventTime) {
+          oldestRecentEventTime = eventTime;
+        }
+      }
+    });
+
+    // If we have a recent event, set a timer to update when it expires
+    if (oldestRecentEventTime !== null) {
+      const timeUntilExpiry = RECENT_EVENT_WINDOW_MS - (now - oldestRecentEventTime);
+      
+      if (timeUntilExpiry > 0) {
+        const timer = setTimeout(() => {
+          setTick(tick => tick + 1); // Force re-render
+        }, timeUntilExpiry + 100); // Add 100ms buffer to ensure event has expired
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [events]);
+
   return (
     <g id="fence-layer">
       {fences.map((fence) => {

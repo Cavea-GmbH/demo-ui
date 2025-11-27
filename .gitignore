@@ -25,3 +25,6 @@ dist-ssr
 
 .env
 
+# Local configuration files (use app-config.example.json as template)
+config/app-config.json
+

@@ -6,7 +6,7 @@ import type {
   Trackable,
   Fence,
 } from '../types/omlox';
-import { ZONE_GEOREFERENCE, HARDCODED_FENCES } from '../config/constants';
+import { useConfig } from '../contexts/ConfigContext';
 
 interface UseOmloxDataReturn {
   providers: LocationProvider[];
@@ -24,34 +24,47 @@ export function useOmloxData(
   pollingEnabled: boolean = true,
   pollingInterval: number = 2000
 ): UseOmloxDataReturn {
+  // Get configuration from context
+  const { config } = useConfig();
+  const zoneId = config?.zone?.id ?? undefined;
+  const configFences = config?.fences ?? [];
+  
   const [providers, setProviders] = useState<LocationProvider[]>([]);
   const [trackables, setTrackables] = useState<Trackable[]>([]);
   const [providerLocations, setProviderLocations] = useState<Map<string, Location>>(new Map());
   const [trackableLocations, setTrackableLocations] = useState<Map<string, Location>>(new Map());
-  const [fences, setFences] = useState<Fence[]>(HARDCODED_FENCES);
+  const [fences, setFences] = useState<Fence[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   const fetchInitialData = useCallback(async () => {
+    if (!config) {
+      console.log('⏳ Waiting for config to load...');
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
+
+      const currentConfigFences = config.fences ?? [];
+      const currentZoneId = config.zone?.id ?? undefined;
 
       // Fetch providers, trackables, and fences in parallel
       const [providersData, trackablesData, fencesData] = await Promise.all([
         omloxApi.getProviders().catch(() => []),
         omloxApi.getTrackables().catch(() => []),
-        omloxApi.getFences({ zone_id: ZONE_GEOREFERENCE.zoneId, crs: 'local' }).catch(() => []),
+        omloxApi.getFences({ zone_id: currentZoneId, crs: 'local' }).catch(() => []),
       ]);
 
       setProviders(providersData);
       setTrackables(trackablesData);
       
-      // Merge API fences with hardcoded fences (hardcoded take precedence)
+      // Merge API fences with config fences (config fences take precedence)
       const apiFenceIds = new Set(fencesData.map(f => f.id));
       const mergedFences = [
-        ...HARDCODED_FENCES,
+        ...currentConfigFences,
         ...fencesData.filter(f => !apiFenceIds.has(f.id)),
       ];
       setFences(mergedFences);
@@ -64,15 +77,19 @@ export function useOmloxData(
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [config]);
 
   const refreshLocations = useCallback(async () => {
+    if (!config) return;
+
     try {
       setError(null);
 
+      const currentZoneId = config.zone?.id ?? undefined;
+
       // Fetch all provider locations
       const providerLocs = await omloxApi.getProviderLocations({
-        zone_id: ZONE_GEOREFERENCE.zoneId,
+        zone_id: currentZoneId,
         crs: 'local',
       });
 
@@ -90,7 +107,7 @@ export function useOmloxData(
         trackables.map(async (trackable) => {
           try {
             const location = await omloxApi.getTrackableLocation(trackable.id, {
-              zone_id: ZONE_GEOREFERENCE.zoneId,
+              zone_id: currentZoneId,
               crs: 'local',
             });
             trackableLocMap.set(trackable.id, location);
@@ -107,7 +124,7 @@ export function useOmloxData(
       setError(err instanceof Error ? err : new Error('Failed to refresh locations'));
       console.error('Error refreshing locations:', err);
     }
-  }, [trackables]);
+  }, [trackables, config]);
 
   // Initial data load
   useEffect(() => {

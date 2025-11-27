@@ -1,16 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type {
   Location,
   LocationProvider,
   Trackable,
   Fence,
 } from '../types/omlox';
-import { 
-  HARDCODED_FENCES, 
-  HARDCODED_PROVIDERS, 
-  HARDCODED_TRACKABLES, 
-  HARDCODED_LOCATIONS 
-} from '../config/constants';
+import { useConfig } from '../contexts/ConfigContext';
 import { normalizeLocationToLocal } from '../utils/coordinateNormalize';
 
 interface UseLocationReceiverReturn {
@@ -30,40 +25,76 @@ interface UseLocationReceiverReturn {
 }
 
 export function useLocationReceiver(): UseLocationReceiverReturn {
-  // Check if we should load initial demo data from environment variable
-  const shouldLoadInitialData = import.meta.env.VITE_LOAD_INITIAL_DATA === 'true';
+  // Get configuration from context
+  const { config } = useConfig();
 
-  // Initialize with hardcoded demo data if enabled
-  const [providers, setProviders] = useState<LocationProvider[]>(
-    shouldLoadInitialData ? HARDCODED_PROVIDERS : []
-  );
-  const [trackables, setTrackables] = useState<Trackable[]>(
-    shouldLoadInitialData ? HARDCODED_TRACKABLES : []
-  );
-  const [providerLocations, setProviderLocations] = useState<Map<string, Location>>(() => {
-    if (!shouldLoadInitialData) return new Map();
-    const map = new Map<string, Location>();
-    Object.entries(HARDCODED_LOCATIONS).forEach(([id, location]) => {
-      if (id.startsWith('provider-')) {
-        map.set(id, location);
+  // Initialize empty state
+  const [providers, setProviders] = useState<LocationProvider[]>([]);
+  const [trackables, setTrackables] = useState<Trackable[]>([]);
+  const [providerLocations, setProviderLocations] = useState<Map<string, Location>>(new Map());
+  const [trackableLocations, setTrackableLocations] = useState<Map<string, Location>>(new Map());
+  const [fences, setFences] = useState<Fence[]>([]);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Load initial data when config becomes available
+  useEffect(() => {
+    if (!config || isInitialized) return;
+
+    console.log('🎬 Loading initial data from config...');
+    
+    // Load fences from config
+    if (config.fences && config.fences.length > 0) {
+      console.log(`🚧 Loading ${config.fences.length} fence(s)`);
+      setFences(config.fences);
+    }
+
+    // Load initial demo data if enabled
+    if (config.initialData?.loadInitialData) {
+      console.log('📦 Loading initial demo data...');
+      
+      // Load providers
+      if (config.initialData.providers && config.initialData.providers.length > 0) {
+        console.log(`👷 Loading ${config.initialData.providers.length} provider(s)`);
+        setProviders(config.initialData.providers);
       }
-    });
-    return map;
-  });
-  const [trackableLocations, setTrackableLocations] = useState<Map<string, Location>>(() => {
-    if (!shouldLoadInitialData) return new Map();
-    const map = new Map<string, Location>();
-    Object.entries(HARDCODED_LOCATIONS).forEach(([id, location]) => {
-      if (id.startsWith('trackable-')) {
-        map.set(id, location);
+
+      // Load trackables
+      if (config.initialData.trackables && config.initialData.trackables.length > 0) {
+        console.log(`📦 Loading ${config.initialData.trackables.length} trackable(s)`);
+        setTrackables(config.initialData.trackables);
       }
-    });
-    return map;
-  });
-  const [fences] = useState<Fence[]>(HARDCODED_FENCES);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(
-    shouldLoadInitialData ? new Date() : null
-  );
+
+      // Load initial locations
+      if (config.initialData.locations) {
+        const providerLocs = new Map<string, Location>();
+        const trackableLocs = new Map<string, Location>();
+        
+        Object.entries(config.initialData.locations).forEach(([id, location]) => {
+          if (id.startsWith('provider-')) {
+            providerLocs.set(id, location);
+          } else if (id.startsWith('trackable-')) {
+            trackableLocs.set(id, location);
+          }
+        });
+
+        if (providerLocs.size > 0) {
+          console.log(`📍 Loading ${providerLocs.size} provider location(s)`);
+          setProviderLocations(providerLocs);
+        }
+
+        if (trackableLocs.size > 0) {
+          console.log(`📍 Loading ${trackableLocs.size} trackable location(s)`);
+          setTrackableLocations(trackableLocs);
+        }
+
+        setLastUpdate(new Date());
+      }
+    }
+
+    setIsInitialized(true);
+    console.log('✅ Initial data loaded');
+  }, [config, isInitialized]);
 
   // Receive a location update for a provider
   const receiveProviderLocation = useCallback((providerId: string, location: Location) => {

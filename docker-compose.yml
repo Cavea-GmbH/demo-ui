@@ -7,8 +7,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:80"
-    environment:
-      - VITE_OMLOX_API_URL=${OMLOX_API_URL:-http://127.0.0.1/v2}
+    volumes:
+      # Mount custom configuration (optional - uses built-in default if not provided)
+      # Copy config/app-config.example.json to config/app-config.json and customize as needed
+      - ./config/app-config.json:/config/app-config.json:ro
     restart: unless-stopped
     networks:
       - demo-network
