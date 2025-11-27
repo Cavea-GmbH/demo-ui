@@ -45,11 +45,17 @@ export default function FloorPlan({
   const FLOOR_PLAN_LENGTH = config?.floor?.length ?? 30;
   const ZONE_GEOREFERENCE = config?.zone ? {
     zoneId: config.zone.id ?? undefined,
-    position: config.zone.position,
+    position: config.zone.position ? {
+      type: 'Point' as const,
+      coordinates: config.zone.position,
+    } : undefined,
     groundControlPoints: config.zone.groundControlPoints,
   } : {
     zoneId: undefined,
-    position: [7.815694, 48.130216] as [number, number],
+    position: {
+      type: 'Point' as const,
+      coordinates: [7.815694, 48.130216] as [number, number],
+    },
     groundControlPoints: [],
   };
   
