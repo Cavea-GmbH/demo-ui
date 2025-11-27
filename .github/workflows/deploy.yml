@@ -109,8 +109,11 @@ jobs:
           
           echo "🏷️  Building image with tags: $IMAGE_TAG, $SEMANTIC_TAG, $ENV_TAG"
           
-          # Build with environment-specific config baked in
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          # Build with environment-specific config and version info baked in
+          docker build \
+            --build-arg VITE_BUILD_NUMBER="${{ github.sha }}" \
+            --build-arg VITE_BUILD_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           
           # Tag for easy reference
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$SEMANTIC_TAG

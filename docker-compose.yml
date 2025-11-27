@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_BUILD_NUMBER: "local-dev"
+        VITE_BUILD_TIME: "development"
     ports:
       - "3000:80"
     volumes:

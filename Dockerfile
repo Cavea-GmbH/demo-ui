@@ -12,7 +12,15 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the frontend application (generic build, no config baked in)
+# Build arguments for version information (baked into frontend bundle)
+ARG VITE_BUILD_NUMBER=dev
+ARG VITE_BUILD_TIME=unknown
+
+# Set as environment variables for Vite to pick up during build
+ENV VITE_BUILD_NUMBER=${VITE_BUILD_NUMBER}
+ENV VITE_BUILD_TIME=${VITE_BUILD_TIME}
+
+# Build the frontend application
 RUN npm run build
 
 # Stage 2: Production with Node.js and Nginx
