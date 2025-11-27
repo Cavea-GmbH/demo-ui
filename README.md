@@ -396,8 +396,8 @@ demo-ui/
 │   │   ├── coordinateNormalize.ts  # WGS84 to local conversion
 │   │   ├── georeferencing.ts       # Affine transformation math
 │   │   └── uuid.ts                 # UUID/ID generation
-│   ├── config/                     # Configuration
-│   │   └── constants.ts            # Floor plan, fences, demo data
+│   ├── config/                     # Configuration (deprecated)
+│   │   └── constants.ts            # Legacy constants (see config/README.md for runtime config)
 │   ├── App.tsx                     # Root application component
 │   └── main.tsx                    # Application entry point
 ├── public/                         # Static assets
@@ -493,11 +493,11 @@ All fence events are logged in the **Event Log** with timestamps and entity deta
 ### WGS84 Coordinates (CRS: `EPSG:4326`)
 - Format: [longitude, latitude]
 - Automatically converted to local coordinates using affine transformation
-- Ground control points defined in `constants.ts`
+- Ground control points configured via runtime configuration (see [`config/README.md`](config/README.md))
 
 ### Georeferencing
 
-The application uses 4 ground control points to map WGS84 coordinates to the local floor plan. Edit `ZONE_GEOREFERENCE` in `constants.ts` to match your real-world location.
+The application uses ground control points to map WGS84 coordinates to the local floor plan. Configure these points in your runtime configuration JSON file to match your real-world location (see [`config/README.md`](config/README.md)).
 
 ## Development Notes
 
@@ -519,9 +519,10 @@ The application uses 4 ground control points to map WGS84 coordinates to the loc
 ### Troubleshooting
 
 - **SSE not connecting**: Check browser console for errors, ensure proxy server is running on port 3001
-- **Markers not appearing**: Check that `VITE_LOAD_INITIAL_DATA=true` or create entities via UI
-- **Coordinates off**: Verify georeferencing settings in `constants.ts` match your location
+- **Markers not appearing**: Check runtime configuration via `/api/config` - ensure `initialData.loadInitialData` is `true` or create entities via UI
+- **Coordinates off**: Verify georeferencing settings in runtime config match your location (see [`config/README.md`](config/README.md))
 - **Build errors**: Run `npm ci` to install exact dependency versions
+- **Full troubleshooting guide**: See [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
 
 ## Future Enhancements
 

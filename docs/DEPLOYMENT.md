@@ -296,9 +296,9 @@ aws ecs create-service \
 
 ## AWS App Runner
 
-App Runner can still be used but has limitations with volume mounts. Configuration must be embedded in the image or passed via environment variables.
+App Runner can still be used but has limitations with volume mounts. Configuration must be embedded in the image.
 
-See [_concept/AWS_SETUP.md](_concept/AWS_SETUP.md) for App Runner-specific instructions.
+See [docs/AWS_SETUP.md](AWS_SETUP.md) for App Runner-specific instructions.
 
 ## Kubernetes
 
@@ -540,7 +540,8 @@ docker-compose up --scale demo-ui=3
 
 ## Next Steps
 
-- Review [config/README.md](config/README.md) for configuration details
-- Check [_concept/AWS_SETUP.md](_concept/AWS_SETUP.md) for AWS-specific guidance
+- Review [config/README.md](../config/README.md) for configuration details
+- Check [docs/AWS_SETUP.md](AWS_SETUP.md) for AWS-specific guidance
+- See [docs/CUSTOMER_DEPLOYMENT.md](CUSTOMER_DEPLOYMENT.md) for customer-specific deployments
 - Set up monitoring and alerting for production deployments
 

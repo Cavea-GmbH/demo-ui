@@ -257,14 +257,18 @@ You should see fence entry and exit events appear in the Event Log panel!
 
 ## Coordinate System
 
-The floor plan uses **local coordinates** in meters:
+The floor plan uses **local coordinates** in meters. The dimensions and fences are configured at runtime.
+
+**Default Configuration (if not customized):**
 - **X-axis**: 0 to 50 meters (left to right)
 - **Y-axis**: 0 to 30 meters (bottom to top)
 
-**Hardcoded Fences:**
-- **Restricted Area 1**: Rectangle from (10, 5) to (25, 15)
-- **Restricted Area 2**: Circle at (35, 20) with 5m radius
-- **Entry Zone**: Rectangle from (0, 0) to (10, 10)
+**To check your configuration:**
+```bash
+curl http://localhost:3001/api/config
+```
+
+This will show your floor dimensions and configured fences.
 
 ---
 
@@ -281,7 +285,7 @@ The floor plan uses **local coordinates** in meters:
    - Verify SSE connection in browser DevTools Network tab
 
 3. **Location not updating:**
-   - Check that coordinates are within floor plan bounds (0-50m x 0-30m)
+   - Check that coordinates are within your configured floor bounds (see `/api/config`)
    - Verify JSON format matches the examples
    - Check browser console for parsing errors
 
