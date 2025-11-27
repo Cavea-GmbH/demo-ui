@@ -26,8 +26,6 @@ export function useOmloxData(
 ): UseOmloxDataReturn {
   // Get configuration from context
   const { config } = useConfig();
-  const zoneId = config?.zone?.id ?? undefined;
-  const configFences = config?.fences ?? [];
   
   const [providers, setProviders] = useState<LocationProvider[]>([]);
   const [trackables, setTrackables] = useState<Trackable[]>([]);
