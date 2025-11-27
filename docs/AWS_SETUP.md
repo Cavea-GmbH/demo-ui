@@ -300,14 +300,12 @@ Create an App Runner service using the AWS Console or CLI:
 1. Go to **AWS App Runner** in the AWS Console
 2. Click **Create service**
 3. **Source**: Container registry → Amazon ECR
-4. **Container image URI**: Use the ECR repository URI from Step 1
-5. **Deployment settings**: Automatic
+4. **Container image URI**: Use the ECR repository URI
+5. **Deployment settings**: Manual (CI/CD will trigger updates)
 6. **Service name**: `demo-ui-prod` (or `demo-ui-dev`)
 7. **Virtual CPU & memory**: 1 vCPU, 2 GB (adjust as needed)
 8. **Port**: 80
-9. **Environment variables**: Add if needed
-   - `NODE_ENV=production`
-10. Click **Create & deploy**
+9. Click **Create & deploy**
 
 ### Using AWS CLI:
 
@@ -400,10 +398,10 @@ ECS task execution role needs:
 
 The deployed application includes:
 
-- **Nginx** (Port 80): Serves the React frontend
-- **Node.js Proxy** (Port 3001): Handles SSE and API endpoints
+- **Nginx** (Port 80): Serves the React frontend and proxies API requests
+- **Node.js Backend** (Port 3001): Handles SSE, API endpoints, and serves configuration
 - **Supervisor**: Manages both processes in the container
-- **Configuration**: Loaded at runtime from volume or built-in default
+- **Configuration**: Loaded at runtime from volume-mounted JSON file or built-in default
 
 ## Accessing the Application
 

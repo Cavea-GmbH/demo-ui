@@ -1,8 +1,8 @@
 import { Box, Paper, Typography } from '@mui/material';
 import { useState, MouseEvent } from 'react';
 import { getSVGViewBox, SVG_WIDTH, SVG_HEIGHT, screenToSVG } from '../../utils/coordinateTransform';
-import { FLOOR_PLAN_WIDTH, FLOOR_PLAN_LENGTH, ZONE_GEOREFERENCE } from '../../config/constants';
 import { localToWgs84 } from '../../utils/georeferencing';
+import { useConfig } from '../../contexts/ConfigContext';
 import FenceLayer from './FenceLayer';
 import TagLayer from './TagLayer';
 import type { Fence, Location, LocationProvider, Trackable } from '../../types/omlox';
@@ -39,6 +39,20 @@ export default function FloorPlan({
   labelDisplay,
   fenceEvents = [],
 }: FloorPlanProps) {
+  // Get configuration from context
+  const { config } = useConfig();
+  const FLOOR_PLAN_WIDTH = config?.floor?.width ?? 50;
+  const FLOOR_PLAN_LENGTH = config?.floor?.length ?? 30;
+  const ZONE_GEOREFERENCE = config?.zone ? {
+    zoneId: config.zone.id ?? undefined,
+    position: config.zone.position,
+    groundControlPoints: config.zone.groundControlPoints,
+  } : {
+    zoneId: undefined,
+    position: [7.815694, 48.130216] as [number, number],
+    groundControlPoints: [],
+  };
+  
   // Tooltip state for coordinate display
   const [tooltip, setTooltip] = useState<{
     x: number;

@@ -42,27 +42,15 @@ jobs:
             ENV="development"
           fi
           
-          FLOOR_WIDTH="${{ vars.FLOOR_WIDTH || '50' }}"
-          FLOOR_LENGTH="${{ vars.FLOOR_LENGTH || '30' }}"
-          LOAD_DATA="${{ vars.LOAD_INITIAL_DATA || 'true' }}"
+          FLOOR_WIDTH="${{ vars.FLOOR_WIDTH }}"
+          FLOOR_LENGTH="${{ vars.FLOOR_LENGTH }}"
+          LOAD_DATA="${{ vars.LOAD_INITIAL_DATA }}"
           FENCES='${{ vars.FENCES }}'
           ZONE_POSITION='${{ vars.ZONE_POSITION }}'
           GCP='${{ vars.GROUND_CONTROL_POINTS }}'
           
           echo "🔧 Building for $ENV environment"
-          
-          # Use defaults if variables not set
-          if [ -z "$FENCES" ] || [ "$FENCES" = "null" ]; then
-            FENCES='[{"id":"fence-1","name":"Test Fence 1","region":{"type":"Polygon","coordinates":[[[15,5],[35,5],[35,15],[15,15],[15,5]]]},"floor":0,"crs":"local"}]'
-          fi
-          
-          if [ -z "$ZONE_POSITION" ] || [ "$ZONE_POSITION" = "null" ]; then
-            ZONE_POSITION='[7.815694, 48.130216]'
-          fi
-          
-          if [ -z "$GCP" ] || [ "$GCP" = "null" ]; then
-            GCP='[{"wgs84":[7.815694,48.130216],"local":[0,0]},{"wgs84":[7.816551,48.130216],"local":[50,0]},{"wgs84":[7.815694,48.13031],"local":[0,30]},{"wgs84":[7.816551,48.13031],"local":[50,30]}]'
-          fi
+          echo "📐 Floor: ${FLOOR_WIDTH}m x ${FLOOR_LENGTH}m"
           
           # Create environment-specific config from GitHub variables
           cat > config/default-config.json <<EOF
@@ -149,10 +137,3 @@ jobs:
             --source-configuration "ImageRepository={ImageIdentifier=${{ env.IMAGE_URI }},ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
             --region eu-central-1
 
-      - name: Wait for deployment to complete
-        run: |
-          echo "⏳ Waiting for App Runner service to update..."
-          aws apprunner wait service-updated \
-            --service-arn ${{ vars.APP_RUNNER_SERVICE_ARN }} \
-            --region eu-central-1 || true
-          echo "✅ Deployment completed!"

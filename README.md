@@ -8,7 +8,7 @@ A lightweight, real-time demo UI for showcasing indoor Real-Time Location System
 
 ### Core Visualization
 - **Interactive Floor Plan**: SVG-based floor plan with configurable grid (1m, 2.5m, 5m) and dimensions
-- **Environment-based Configuration**: Deploy different floor plans per server via environment variables (see [FLOOR_CONFIG.md](./FLOOR_CONFIG.md))
+- **Runtime Configuration**: Deploy different floor plans per instance via JSON configuration files (see [`config/README.md`](config/README.md))
 - **Real-time Tracking**: Display positions of BLE, UWB, Wirepas, and GPS tags with live updates
 - **Dual Coordinate Support**: Handle both local (x,y) and WGS84 (lat/lon) coordinates with automatic georeferencing
 - **Location Providers & Trackables**: Visualize and toggle between location providers and trackable items
@@ -109,44 +109,19 @@ npm run dev:all
 
 See [`config/README.md`](config/README.md) for detailed configuration options.
 
-### 3. (Legacy) Environment Variables
+### 3. Environment Variables (Optional)
 
-For backward compatibility, you can still use `.env` for some settings:
-
-Create a `.env` file in the project root:
+For local development, you can optionally set:
 
 ```env
-# Frontend Configuration (embedded at build time)
-# ================================================
-
-# Control whether to load initial demo data (trackables & providers)
-VITE_LOAD_INITIAL_DATA=true
-
-# Omlox API URL - frontend makes requests to this URL (proxied via /api/)
-VITE_OMLOX_API_URL=/api
-
-# Floor Plan Configuration (optional - defaults provided)
-# ========================================================
-# See FLOOR_CONFIG.md for detailed configuration guide
-VITE_FLOOR_WIDTH=50
-VITE_FLOOR_LENGTH=30
-VITE_ZONE_POSITION=[7.815694, 48.130216]
-VITE_GROUND_CONTROL_POINTS=[{"wgs84":[7.815694,48.130216],"local":[0,0]},{"wgs84":[7.816551,48.130216],"local":[50,0]},{"wgs84":[7.815694,48.13031],"local":[0,30]},{"wgs84":[7.816551,48.13031],"local":[50,30]}]
-
-# Demo Fences (optional - single test fence by default)
-VITE_DEMO_FENCES=[{"id":"fence-1","name":"Test Fence 1","region":{"type":"Polygon","coordinates":[[[15,5],[35,5],[35,15],[15,15],[15,5]]]},"floor":0,"crs":"local"}]
-
-# Backend Proxy Configuration (runtime environment variables)
-# ============================================================
-
-# Proxy server port (default: 3001)
-# PROXY_PORT=3001
+# Backend Proxy Configuration
+PROXY_PORT=3001  # Default port for backend server
 ```
 
 **Note**: 
-- `VITE_*` variables are embedded into the frontend build at compile time
+- The application uses **runtime configuration** via JSON files (see `config/README.md`)
 - The backend is **standalone** - it maintains all data in-memory (no external Hub needed)
-- Floor configuration is optional - see **[FLOOR_CONFIG.md](./FLOOR_CONFIG.md)** for detailed setup guide
+- No `VITE_*` environment variables needed for local development
 
 ### 4. Start Development Servers
 
@@ -254,7 +229,7 @@ The Docker container runs two processes managed by Supervisor:
 
 - **Customer Deployments**: See [`docs/CUSTOMER_DEPLOYMENT.md`](docs/CUSTOMER_DEPLOYMENT.md) for detailed Docker deployment instructions
 - **AWS Deployment**: See [`docs/AWS_SETUP.md`](docs/AWS_SETUP.md) for AWS ECS/Fargate and App Runner setup
-- **General Guide**: See [`DEPLOYMENT.md`](DEPLOYMENT.md) for all deployment options
+- **General Guide**: See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for all deployment options
 
 ## Production Deployment (Automated CI/CD)
 
@@ -265,10 +240,10 @@ The demo instance is automatically deployed to AWS App Runner using GitHub Actio
 1. **GitHub Actions Workflow** (`.github/workflows/deploy.yml`):
    - Triggered on push to `dev` or `main` branches
    - Authenticates with AWS using OIDC (no long-lived credentials needed)
-   - Builds Docker image with production environment variables
+   - Generates environment-specific config from GitHub variables
+   - Builds Docker image with config baked in
    - Pushes image to Amazon ECR (`frontend/cavea-demo-ui`)
-   - Updates AWS App Runner service with new image
-   - Waits for deployment to complete
+   - Triggers AWS App Runner service update
 
 2. **AWS Resources**:
    - **ECR Repository**: `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
@@ -280,16 +255,16 @@ The demo instance is automatically deployed to AWS App Runner using GitHub Actio
    - Permissions: ECR push, App Runner update
    - Repository: `Cavea-GmbH/demo-ui`
 
-### Environment Variables (Production)
+### Environment-Specific Configuration
 
-Set in `.github/workflows/deploy.yml`:
+Configuration is managed via GitHub environment variables (Production/Development):
 
-```bash
-VITE_OMLOX_API_URL=not_used
-VITE_BUILD_NUMBER=${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}
-VITE_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-VITE_LOAD_INITIAL_DATA=true  # Set to 'false' for production without demo data
 ```
+FLOOR_WIDTH, FLOOR_LENGTH, LOAD_INITIAL_DATA
+ZONE_POSITION, GROUND_CONTROL_POINTS, FENCES
+```
+
+See [`docs/GITHUB_SETUP.md`](docs/GITHUB_SETUP.md) for complete setup instructions.
 
 ### Manual Deployment
 
@@ -316,68 +291,43 @@ aws apprunner update-service \
 
 ## Configuration
 
+The application uses **runtime configuration** via JSON files. See [`config/README.md`](config/README.md) for detailed configuration options.
+
+### Quick Start
+
+```bash
+# Copy example config
+cp config/app-config.example.json config/app-config.json
+
+# Edit with your values
+nano config/app-config.json
+```
+
+### Configuration Schema
+
+```json
+{
+  "floor": { "width": 50, "length": 30 },
+  "zone": {
+    "id": "zone-1",
+    "position": [longitude, latitude],
+    "groundControlPoints": [...]
+  },
+  "fences": [...],
+  "initialData": {
+    "loadInitialData": true,
+    "providers": [...],
+    "trackables": [...],
+    "locations": {...}
+  }
+}
+```
+
 ### Environment Variables
 
-#### Frontend (Build-time - `VITE_*`)
-
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `VITE_LOAD_INITIAL_DATA` | Load demo trackables/providers on startup | `true` | No |
-| `VITE_OMLOX_API_URL` | Omlox API endpoint for frontend (proxied via `/api/`) | `/api` | Yes |
-| `VITE_BUILD_NUMBER` | Build number (auto-generated in CI/CD) | - | No |
-| `VITE_BUILD_TIME` | Build timestamp (auto-generated in CI/CD) | - | No |
-
-#### Backend (Runtime - Node.js Server)
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `PROXY_PORT` | Port for the standalone demo server | `3001` | No |
-
-### Floor Plan Configuration
-
-Edit `src/config/constants.ts`:
-
-```typescript
-// Floor plan dimensions (meters)
-export const FLOOR_PLAN_WIDTH = 50;
-export const FLOOR_PLAN_HEIGHT = 30;
-
-// Grid cell size (meters)
-export const GRID_CELL_SIZE = 5;
-
-// Default zone ID
-export const DEFAULT_ZONE_ID = 'zone-1';
-
-// Georeferencing: Map WGS84 coordinates to local coordinates
-export const ZONE_GEOREFERENCE = {
-  zoneId: DEFAULT_ZONE_ID,
-  groundControlPoints: [
-    { local: [0, 0], wgs84: [7.815, 48.13] },      // Bottom-left
-    { local: [50, 0], wgs84: [7.816, 48.13] },     // Bottom-right
-    { local: [50, 30], wgs84: [7.816, 48.1305] },  // Top-right
-    { local: [0, 30], wgs84: [7.815, 48.1305] },   // Top-left
-  ]
-};
-
-// Hardcoded fences (polygonal)
-export const HARDCODED_FENCES: Fence[] = [
-  {
-    id: 'fence-1',
-    name: 'Demo Fence',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [[
-        [15, 5], [35, 5], [35, 15], [15, 15], [15, 5]  // Closed polygon
-      ]]
-    }
-  }
-];
-
-// Initial demo data (loaded if VITE_LOAD_INITIAL_DATA=true)
-export const HARDCODED_PROVIDERS: LocationProvider[] = [...];
-export const HARDCODED_TRACKABLES: Trackable[] = [...];
-export const HARDCODED_LOCATIONS: Record<string, Location> = {...};
-```
+| `PROXY_PORT` | Port for the Node.js backend server | `3001` | No |
 
 ## Project Structure
 
