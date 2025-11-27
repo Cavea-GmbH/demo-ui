@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Location, Fence, FenceEvent } from '../types/omlox';
 import { getFencesContainingPoint } from '../utils/fenceDetection';
 
@@ -19,8 +19,8 @@ export function useFenceEvents(
   fences: Fence[]
 ): UseFenceEventsReturn {
   const [events, setEvents] = useState<FenceEvent[]>([]);
-  const [providerFenceStates, setProviderFenceStates] = useState<Map<string, FenceState[]>>(new Map());
-  const [trackableFenceStates, setTrackableFenceStates] = useState<Map<string, FenceState[]>>(new Map());
+  const providerFenceStatesRef = useRef<Map<string, FenceState[]>>(new Map());
+  const trackableFenceStatesRef = useRef<Map<string, FenceState[]>>(new Map());
 
   const addEvent = useCallback((event: FenceEvent) => {
     setEvents((prev) => [event, ...prev].slice(0, 100)); // Keep last 100 events
@@ -42,7 +42,7 @@ export function useFenceEvents(
       }));
 
       // Check previous state
-      const previousStates = providerFenceStates.get(providerId) || [];
+      const previousStates = providerFenceStatesRef.current.get(providerId) || [];
       const previousFenceIds = new Set(previousStates.map((s) => s.fenceId));
       const currentFenceIds = new Set(currentStates.map((s) => s.fenceId));
 
@@ -77,8 +77,8 @@ export function useFenceEvents(
       newProviderStates.set(providerId, currentStates);
     });
 
-    setProviderFenceStates(newProviderStates);
-  }, [providerLocations, fences, providerFenceStates, addEvent]);
+    providerFenceStatesRef.current = newProviderStates;
+  }, [providerLocations, fences, addEvent]);
 
   // Check for fence events for trackables
   useEffect(() => {
@@ -92,7 +92,7 @@ export function useFenceEvents(
       }));
 
       // Check previous state
-      const previousStates = trackableFenceStates.get(trackableId) || [];
+      const previousStates = trackableFenceStatesRef.current.get(trackableId) || [];
       const previousFenceIds = new Set(previousStates.map((s) => s.fenceId));
       const currentFenceIds = new Set(currentStates.map((s) => s.fenceId));
 
@@ -127,8 +127,8 @@ export function useFenceEvents(
       newTrackableStates.set(trackableId, currentStates);
     });
 
-    setTrackableFenceStates(newTrackableStates);
-  }, [trackableLocations, fences, trackableFenceStates, addEvent]);
+    trackableFenceStatesRef.current = newTrackableStates;
+  }, [trackableLocations, fences, addEvent]);
 
   return {
     events,

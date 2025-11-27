@@ -1,5 +1,5 @@
 import { Box, AppBar, Toolbar, Typography, Chip, IconButton, ToggleButton, ToggleButtonGroup, Divider } from '@mui/material';
-import { CheckCircle, Error as ErrorIcon, Menu as MenuIcon, Visibility, VisibilityOff } from '@mui/icons-material';
+import { CheckCircle, Error as ErrorIcon, Menu as MenuIcon, Settings as SettingsIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 
 interface TopBarProps {
   isConnected: boolean;
@@ -11,34 +11,29 @@ interface TopBarProps {
   fenceCount: number;
   lastUpdate: Date | null;
   onMenuClick: () => void;
+  onSettingsClick: () => void;
   showProviders: boolean;
   showTrackables: boolean;
   showFences: boolean;
-  showGrid: boolean;
   onShowProvidersChange: (show: boolean) => void;
   onShowTrackablesChange: (show: boolean) => void;
   onShowFencesChange: (show: boolean) => void;
-  onShowGridChange: (show: boolean) => void;
 }
 
 export default function TopBar({
   isConnected,
-  isLoading,
-  pollingEnabled,
-  onPollingToggle,
   providerCount,
   trackableCount,
   fenceCount,
   lastUpdate,
   onMenuClick,
+  onSettingsClick,
   showProviders,
   showTrackables,
   showFences,
-  showGrid,
   onShowProvidersChange,
   onShowTrackablesChange,
   onShowFencesChange,
-  onShowGridChange,
 }: TopBarProps) {
   const formatLastUpdate = () => {
     if (!lastUpdate) return 'Never';
@@ -51,54 +46,151 @@ export default function TopBar({
   };
 
   return (
-    <AppBar position="static" elevation={1} sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>
-      <Toolbar sx={{ gap: 2, minHeight: '64px !important' }}>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 0, mr: 3, fontWeight: 600 }}>
-          Omlox RTLS Demo
+    <AppBar 
+      position="static" 
+      elevation={0}
+      sx={{ 
+        bgcolor: 'background.paper',
+        color: 'text.primary',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        backdropFilter: 'blur(12px)',
+        background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%)',
+      }}
+    >
+      <Toolbar sx={{ minHeight: '72px !important', px: 3, display: 'flex', alignItems: 'center', gap: 0 }}>
+        <Box
+          component="img"
+          src="/cavea-logo.svg"
+          alt="Cavea"
+          sx={{
+            height: 28,
+            width: 'auto',
+            mr: 2,
+          }}
+        />
+        
+        <Divider orientation="vertical" flexItem sx={{ mr: 2, my: 2.5 }} />
+        
+        <Box
+          sx={{
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: isConnected 
+              ? '#64CEFF'
+              : '#E63946',
+            boxShadow: isConnected
+              ? '0 0 12px rgba(100, 206, 255, 0.5)'
+              : '0 0 12px rgba(230, 57, 70, 0.5)',
+            animation: isConnected ? 'pulse 2s ease-in-out infinite' : 'none',
+            '@keyframes pulse': {
+              '0%, 100%': { opacity: 1 },
+              '50%': { opacity: 0.6 },
+            },
+            mr: 1,
+          }}
+        />
+        
+        <Typography 
+          variant="body2" 
+          component="div" 
+          sx={{ 
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            color: 'text.secondary',
+            letterSpacing: '-0.01em',
+            mr: 2,
+          }}
+        >
+          RTLS Demo
         </Typography>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 0.75,
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 2,
+              bgcolor: isConnected ? 'rgba(100, 206, 255, 0.08)' : 'rgba(230, 57, 70, 0.08)',
+              border: '1px solid',
+              borderColor: isConnected ? 'rgba(100, 206, 255, 0.2)' : 'rgba(230, 57, 70, 0.2)',
+            }}
+          >
             {isConnected ? (
-              <CheckCircle color="success" fontSize="small" />
+              <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
             ) : (
-              <ErrorIcon color="error" fontSize="small" />
+              <ErrorIcon sx={{ fontSize: 16, color: 'error.main' }} />
             )}
-            <Typography variant="body2" sx={{ minWidth: 80 }}>
-              {isConnected ? 'Receiving' : 'Disconnected'}
+            <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+              {isConnected ? 'Connected' : 'Disconnected'}
             </Typography>
           </Box>
 
           <Chip
-            label={`Providers: ${providerCount}`}
+            label={`${providerCount} Providers`}
             size="small"
-            variant="outlined"
-            color="primary"
+            sx={{
+              bgcolor: 'rgba(10, 77, 140, 0.08)',
+              color: 'primary.main',
+              fontWeight: 600,
+              border: '1px solid rgba(10, 77, 140, 0.15)',
+              '& .MuiChip-label': { px: 1.5 },
+            }}
           />
           <Chip
-            label={`Trackables: ${trackableCount}`}
+            label={`${trackableCount} Trackables`}
             size="small"
-            variant="outlined"
-            color="secondary"
+            sx={{
+              bgcolor: 'rgba(100, 206, 255, 0.08)',
+              color: 'secondary.main',
+              fontWeight: 600,
+              border: '1px solid rgba(100, 206, 255, 0.15)',
+              '& .MuiChip-label': { px: 1.5 },
+            }}
           />
           <Chip
-            label={`Fences: ${fenceCount}`}
+            label={`${fenceCount} Fences`}
             size="small"
-            variant="outlined"
+            sx={{
+              bgcolor: 'rgba(95, 111, 135, 0.08)',
+              color: 'text.secondary',
+              fontWeight: 600,
+              border: '1px solid rgba(95, 111, 135, 0.15)',
+              '& .MuiChip-label': { px: 1.5 },
+            }}
           />
 
-          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-            Last: {formatLastUpdate()}
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 1, fontSize: '0.75rem' }}>
+            {formatLastUpdate()}
           </Typography>
         </Box>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 2 }} />
+        <Divider orientation="vertical" flexItem sx={{ mx: 2, my: 2 }} />
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
-            Show:
+          <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5, fontWeight: 500 }}>
+            Layers:
           </Typography>
-          <ToggleButtonGroup size="small" sx={{ height: 32 }}>
+          <ToggleButtonGroup 
+            size="small" 
+            sx={{ 
+              height: 38,
+              '& .MuiToggleButton-root': {
+                border: '1px solid rgba(10, 77, 140, 0.12)',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                  },
+                },
+              },
+            }}
+          >
             <ToggleButton
               value="providers"
               selected={showProviders}
@@ -106,8 +198,8 @@ export default function TopBar({
               sx={{ px: 1.5, textTransform: 'none' }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {showProviders ? <Visibility fontSize="small" /> : <VisibilityOff fontSize="small" />}
-                <Typography variant="caption">Providers</Typography>
+                {showProviders ? <Visibility sx={{ fontSize: 16 }} /> : <VisibilityOff sx={{ fontSize: 16 }} />}
+                <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>Providers</Typography>
               </Box>
             </ToggleButton>
             <ToggleButton
@@ -117,8 +209,8 @@ export default function TopBar({
               sx={{ px: 1.5, textTransform: 'none' }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {showTrackables ? <Visibility fontSize="small" /> : <VisibilityOff fontSize="small" />}
-                <Typography variant="caption">Trackables</Typography>
+                {showTrackables ? <Visibility sx={{ fontSize: 16 }} /> : <VisibilityOff sx={{ fontSize: 16 }} />}
+                <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>Trackables</Typography>
               </Box>
             </ToggleButton>
             <ToggleButton
@@ -128,30 +220,40 @@ export default function TopBar({
               sx={{ px: 1.5, textTransform: 'none' }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {showFences ? <Visibility fontSize="small" /> : <VisibilityOff fontSize="small" />}
-                <Typography variant="caption">Fences</Typography>
-              </Box>
-            </ToggleButton>
-            <ToggleButton
-              value="grid"
-              selected={showGrid}
-              onChange={() => onShowGridChange(!showGrid)}
-              sx={{ px: 1.5, textTransform: 'none' }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {showGrid ? <Visibility fontSize="small" /> : <VisibilityOff fontSize="small" />}
-                <Typography variant="caption">Grid & Labels</Typography>
+                {showFences ? <Visibility sx={{ fontSize: 16 }} /> : <VisibilityOff sx={{ fontSize: 16 }} />}
+                <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>Fences</Typography>
               </Box>
             </ToggleButton>
           </ToggleButtonGroup>
         </Box>
 
         <IconButton
+          color="inherit"
+          aria-label="open settings"
+          onClick={onSettingsClick}
+          sx={{ 
+            ml: 1,
+            bgcolor: 'rgba(10, 77, 140, 0.04)',
+            '&:hover': {
+              bgcolor: 'rgba(10, 77, 140, 0.08)',
+            },
+          }}
+        >
+          <SettingsIcon />
+        </IconButton>
+
+        <IconButton
           edge="end"
           color="inherit"
           aria-label="open info panel"
           onClick={onMenuClick}
-          sx={{ ml: 2 }}
+          sx={{ 
+            ml: 0.5,
+            bgcolor: 'rgba(10, 77, 140, 0.04)',
+            '&:hover': {
+              bgcolor: 'rgba(10, 77, 140, 0.08)',
+            },
+          }}
         >
           <MenuIcon />
         </IconButton>

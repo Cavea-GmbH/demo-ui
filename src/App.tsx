@@ -1,35 +1,31 @@
 import { useState, useEffect } from 'react';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import { Box } from '@mui/material';
+import { ThemeProvider, CssBaseline, Box } from '@mui/material';
+import { theme } from './theme/theme';
 import { useLocationReceiver } from './hooks/useLocationReceiver';
 import { useFenceEvents } from './hooks/useFenceEvents';
+import { useLocalStorage } from './hooks/useLocalStorage';
 import { locationPushReceiver } from './services/locationPushReceiver';
 import { sseClient } from './services/sseClient';
 import FloorPlan from './components/FloorPlan/FloorPlan';
 import TopBar from './components/TopBar/TopBar';
 import Sidebar from './components/Sidebar/Sidebar';
+import { SettingsDialog, LabelDisplayMode } from './components/SettingsDialog/SettingsDialog';
 import type { LocationProvider, Trackable } from './types/omlox';
-
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#2196f3',
-    },
-    secondary: {
-      main: '#ff9800',
-    },
-  },
-});
 
 function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarTab, setSidebarTab] = useState(0);
-  const [showProviders, setShowProviders] = useState(true);
-  const [showTrackables, setShowTrackables] = useState(false);
-  const [showFences, setShowFences] = useState(true);
-  const [showGrid, setShowGrid] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  // Persistent visibility settings using localStorage
+  const [showProviders, setShowProviders] = useLocalStorage('cavea-show-providers', true);
+  const [showTrackables, setShowTrackables] = useLocalStorage('cavea-show-trackables', false);
+  const [showFences, setShowFences] = useLocalStorage('cavea-show-fences', true);
+  const [showGrid, setShowGrid] = useLocalStorage('cavea-show-grid', true);
+  const [gridSize, setGridSize] = useLocalStorage('cavea-grid-size', 5);
+  const [animateMovement, setAnimateMovement] = useLocalStorage('cavea-animate-movement', false);
+  const [labelDisplay, setLabelDisplay] = useLocalStorage<LabelDisplayMode>('cavea-label-display', 'full');
 
   const {
     providers,
@@ -126,14 +122,13 @@ function App() {
           fenceCount={fences.length}
           lastUpdate={lastUpdate}
           onMenuClick={() => setSidebarOpen(true)}
+          onSettingsClick={() => setSettingsOpen(true)}
           showProviders={showProviders}
           showTrackables={showTrackables}
           showFences={showFences}
-          showGrid={showGrid}
           onShowProvidersChange={setShowProviders}
           onShowTrackablesChange={setShowTrackables}
           onShowFencesChange={setShowFences}
-          onShowGridChange={setShowGrid}
         />
 
         {/* Main Content - Floor Plan */}
@@ -142,7 +137,7 @@ function App() {
             flex: 1,
             overflow: 'hidden',
             position: 'relative',
-            p: 2,
+            p: 3,
             bgcolor: 'background.default',
           }}
         >
@@ -150,8 +145,11 @@ function App() {
             sx={{
               width: '100%',
               height: '100%',
-              borderRadius: 1,
+              borderRadius: 3,
               overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(10, 77, 140, 0.08)',
+              background: '#FFFFFF',
+              border: '1px solid rgba(10, 77, 140, 0.08)',
             }}
           >
             <FloorPlan
@@ -164,6 +162,9 @@ function App() {
               showTrackables={showTrackables}
               showFences={showFences}
               showGrid={showGrid}
+              gridSize={gridSize}
+              animateMovement={animateMovement}
+              labelDisplay={labelDisplay}
               fenceEvents={events}
             />
           </Box>
@@ -176,9 +177,6 @@ function App() {
           tabValue={sidebarTab}
           onTabChange={setSidebarTab}
           isConnected={isConnected}
-          isLoading={false}
-          pollingEnabled={false}
-          onPollingToggle={() => {}} // No-op
           providerCount={providers.length}
           trackableCount={trackables.length}
           fenceCount={fences.length}
@@ -187,12 +185,27 @@ function App() {
           onClearEvents={clearEvents}
           providers={providers}
           trackables={trackables}
+          fences={fences}
           onProviderAdded={handleProviderAdded}
           onProviderUpdated={handleProviderUpdated}
           onProviderDeleted={handleProviderDeleted}
           onTrackableAdded={handleTrackableAdded}
           onTrackableUpdated={handleTrackableUpdated}
           onTrackableDeleted={handleTrackableDeleted}
+        />
+
+        {/* Settings Dialog */}
+        <SettingsDialog
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          showGrid={showGrid}
+          onShowGridChange={setShowGrid}
+          gridSize={gridSize}
+          onGridSizeChange={setGridSize}
+          animateMovement={animateMovement}
+          onAnimateMovementChange={setAnimateMovement}
+          labelDisplay={labelDisplay}
+          onLabelDisplayChange={setLabelDisplay}
         />
       </Box>
     </ThemeProvider>

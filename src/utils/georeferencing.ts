@@ -135,9 +135,9 @@ export function localToWgs84(
   }
 
   // Calculate average latitude for meters-per-degree conversion
-  const avgLat = gcp.reduce((sum, p) => sum + p.wgs84[1], 0) / gcp.length;
-  const metersPerDegreeLat = 111320;
-  const metersPerDegreeLon = 111320 * Math.cos(avgLat * Math.PI / 180);
+  // const avgLat = gcp.reduce((sum, p) => sum + p.wgs84[1], 0) / gcp.length;
+  // const metersPerDegreeLat = 111320;
+  // const metersPerDegreeLon = 111320 * Math.cos(avgLat * Math.PI / 180);
 
   // Use first GCP as origin
   const origin = gcp[0];

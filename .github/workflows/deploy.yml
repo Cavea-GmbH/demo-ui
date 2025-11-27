@@ -1,0 +1,106 @@
+# This workflow builds and deploys the demo-ui to AWS App Runner
+# It triggers on pushes to the 'main' (prod) and 'dev' branches.
+
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+# Permissions needed for OIDC to work
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: ${{ (github.ref == 'refs/heads/main' && 'Production') || 'Development' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      - name: Create .env file from Secrets and Variables
+        run: |
+          echo "VITE_OMLOX_API_URL=${{ vars.VITE_OMLOX_API_URL }}" > .env
+          # Build metadata
+          echo "VITE_BUILD_NUMBER=${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> .env
+          echo "VITE_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
+          # Control initial demo data loading (configurable via GitHub variable, default: true)
+          echo "VITE_LOAD_INITIAL_DATA=${{ vars.VITE_LOAD_INITIAL_DATA || 'true' }}" >> .env
+          # Floor Plan Configuration
+          echo "VITE_FLOOR_WIDTH=${{ vars.VITE_FLOOR_WIDTH }}" >> .env
+          echo "VITE_FLOOR_LENGTH=${{ vars.VITE_FLOOR_LENGTH }}" >> .env
+          echo "VITE_ZONE_POSITION=${{ vars.VITE_ZONE_POSITION }}" >> .env
+          echo "VITE_GROUND_CONTROL_POINTS=${{ vars.VITE_GROUND_CONTROL_POINTS }}" >> .env
+          echo "VITE_DEMO_FENCES=${{ vars.VITE_DEMO_FENCES }}" >> .env
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Docker image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          BUILD_NUM="${GITHUB_RUN_NUMBER}-${GITHUB_SHA:0:7}"
+          BUILD_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          LOAD_DATA="${{ vars.VITE_LOAD_INITIAL_DATA }}"
+          
+          # Default to 'true' if not set
+          if [ -z "$LOAD_DATA" ]; then
+            LOAD_DATA="true"
+          fi
+          
+          # Determine semantic tag based on branch
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            SEMANTIC_TAG="latest"
+          else
+            SEMANTIC_TAG="dev"
+          fi
+          
+          echo "🏷️  Building image with tags: $IMAGE_TAG and $SEMANTIC_TAG"
+          
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            --build-arg VITE_BUILD_NUMBER="${BUILD_NUM}" \
+            --build-arg VITE_BUILD_TIME="${BUILD_TS}" \
+            --build-arg VITE_LOAD_INITIAL_DATA="${LOAD_DATA}" \
+            --build-arg VITE_FLOOR_WIDTH="${{ vars.VITE_FLOOR_WIDTH }}" \
+            --build-arg VITE_FLOOR_LENGTH="${{ vars.VITE_FLOOR_LENGTH }}" \
+            --build-arg VITE_ZONE_POSITION="${{ vars.VITE_ZONE_POSITION }}" \
+            --build-arg VITE_GROUND_CONTROL_POINTS='${{ vars.VITE_GROUND_CONTROL_POINTS }}' \
+            --build-arg VITE_DEMO_FENCES='${{ vars.VITE_DEMO_FENCES }}' \
+            .
+            
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$SEMANTIC_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$SEMANTIC_TAG
+          echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Deploy to AWS App Runner
+        run: |
+          aws apprunner update-service \
+            --service-arn ${{ vars.APP_RUNNER_SERVICE_ARN }} \
+            --source-configuration "ImageRepository={ImageIdentifier=${{ env.IMAGE_URI }},ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
+            --region eu-central-1
+
+      - name: Wait for deployment to complete
+        run: |
+          echo "Waiting for App Runner service to update..."
+          aws apprunner wait service-updated \
+            --service-arn ${{ vars.APP_RUNNER_SERVICE_ARN }} \
+            --region eu-central-1 || true
+          echo "Deployment completed!"

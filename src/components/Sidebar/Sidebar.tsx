@@ -4,7 +4,8 @@ import StatusPanel from '../StatusPanel/StatusPanel';
 import EventLog from '../EventLog/EventLog';
 import ProviderManager from '../EntityManagement/ProviderManager';
 import TrackableManager from '../EntityManagement/TrackableManager';
-import type { FenceEvent, LocationProvider, Trackable } from '../../types/omlox';
+import FenceList from '../EntityManagement/FenceList';
+import type { FenceEvent, LocationProvider, Trackable, Fence } from '../../types/omlox';
 
 interface SidebarProps {
   open: boolean;
@@ -12,9 +13,6 @@ interface SidebarProps {
   tabValue: number;
   onTabChange: (value: number) => void;
   isConnected: boolean;
-  isLoading: boolean;
-  pollingEnabled: boolean;
-  onPollingToggle: (enabled: boolean) => void;
   providerCount: number;
   trackableCount: number;
   fenceCount: number;
@@ -23,6 +21,7 @@ interface SidebarProps {
   onClearEvents: () => void;
   providers: LocationProvider[];
   trackables: Trackable[];
+  fences: Fence[];
   onProviderAdded: (provider: LocationProvider) => void;
   onProviderUpdated: (provider: LocationProvider) => void;
   onProviderDeleted: (providerId: string) => void;
@@ -37,9 +36,6 @@ export default function Sidebar({
   tabValue,
   onTabChange,
   isConnected,
-  isLoading,
-  pollingEnabled,
-  onPollingToggle,
   providerCount,
   trackableCount,
   fenceCount,
@@ -48,6 +44,7 @@ export default function Sidebar({
   onClearEvents,
   providers,
   trackables,
+  fences,
   onProviderAdded,
   onProviderUpdated,
   onProviderDeleted,
@@ -68,22 +65,44 @@ export default function Sidebar({
         '& .MuiDrawer-paper': {
           width: drawerWidth,
           boxSizing: 'border-box',
+          borderLeft: '1px solid',
+          borderColor: 'divider',
+          background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 247, 250, 0.98) 100%)',
+          backdropFilter: 'blur(20px)',
         },
       }}
     >
       <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Box
           sx={{
-            p: 2,
-            borderBottom: 1,
+            p: 3,
+            borderBottom: '1px solid',
             borderColor: 'divider',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            background: 'rgba(255, 255, 255, 0.6)',
           }}
         >
-          <Typography variant="h6">Information</Typography>
-          <IconButton size="small" onClick={onClose}>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 700,
+              color: '#0A4D8C',
+            }}
+          >
+            Control Panel
+          </Typography>
+          <IconButton 
+            size="small" 
+            onClick={onClose}
+            sx={{
+              bgcolor: 'rgba(10, 77, 140, 0.06)',
+              '&:hover': {
+                bgcolor: 'rgba(10, 77, 140, 0.12)',
+              },
+            }}
+          >
             <CloseIcon />
           </IconButton>
         </Box>
@@ -91,7 +110,25 @@ export default function Sidebar({
         <Tabs
           value={tabValue}
           onChange={(_, newValue) => onTabChange(newValue)}
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
+          sx={{ 
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            px: 2,
+            bgcolor: 'rgba(255, 255, 255, 0.5)',
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontWeight: 500,
+              minHeight: 54,
+              '&.Mui-selected': {
+                fontWeight: 600,
+              },
+            },
+            '& .MuiTabs-indicator': {
+              height: 3,
+              borderRadius: '3px 3px 0 0',
+              background: '#0A4D8C',
+            },
+          }}
           variant="scrollable"
           scrollButtons="auto"
         >
@@ -99,16 +136,14 @@ export default function Sidebar({
           <Tab label="Events" />
           <Tab label="Providers" />
           <Tab label="Trackables" />
+          <Tab label="Fences" />
         </Tabs>
 
         <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {tabValue === 0 && (
-            <Box sx={{ p: 2, overflow: 'auto' }}>
+            <Box sx={{ p: 3, overflow: 'auto' }}>
               <StatusPanel
                 isConnected={isConnected}
-                isLoading={isLoading}
-                pollingEnabled={pollingEnabled}
-                onPollingToggle={onPollingToggle}
                 providerCount={providerCount}
                 trackableCount={trackableCount}
                 fenceCount={fenceCount}
@@ -124,7 +159,7 @@ export default function Sidebar({
           )}
 
           {tabValue === 2 && (
-            <Box sx={{ p: 2, overflow: 'auto' }}>
+            <Box sx={{ p: 3, overflow: 'auto' }}>
               <ProviderManager
                 providers={providers}
                 onProviderAdded={onProviderAdded}
@@ -135,7 +170,7 @@ export default function Sidebar({
           )}
 
           {tabValue === 3 && (
-            <Box sx={{ p: 2, overflow: 'auto' }}>
+            <Box sx={{ p: 3, overflow: 'auto' }}>
               <TrackableManager
                 trackables={trackables}
                 providers={providers}
@@ -145,6 +180,47 @@ export default function Sidebar({
               />
             </Box>
           )}
+
+          {tabValue === 4 && (
+            <Box sx={{ p: 3, overflow: 'auto' }}>
+              <FenceList fences={fences} />
+            </Box>
+          )}
+        </Box>
+
+        {/* Version and Build Information Footer */}
+        <Box
+          sx={{
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            px: 3,
+            py: 2,
+            bgcolor: 'rgba(255, 255, 255, 0.6)',
+          }}
+        >
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              display: 'block',
+              color: 'text.secondary',
+              fontSize: '0.7rem',
+              lineHeight: 1.4,
+              mb: 0.5,
+            }}
+          >
+            <strong>Version:</strong> {import.meta.env.VITE_BUILD_NUMBER || 'dev'}
+          </Typography>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              display: 'block',
+              color: 'text.secondary',
+              fontSize: '0.7rem',
+              lineHeight: 1.4,
+            }}
+          >
+            <strong>Built:</strong> {import.meta.env.VITE_BUILD_TIME ? new Date(import.meta.env.VITE_BUILD_TIME).toLocaleString() : 'development'}
+          </Typography>
         </Box>
       </Box>
     </Drawer>

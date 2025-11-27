@@ -1,11 +1,12 @@
 import { Box, Paper, Typography } from '@mui/material';
 import { useState, MouseEvent } from 'react';
-import { getSVGViewBox, SVG_WIDTH, SVG_HEIGHT, transformToSVG, screenToSVG } from '../../utils/coordinateTransform';
-import { FLOOR_PLAN_WIDTH, FLOOR_PLAN_HEIGHT, ZONE_GEOREFERENCE } from '../../config/constants';
+import { getSVGViewBox, SVG_WIDTH, SVG_HEIGHT, screenToSVG } from '../../utils/coordinateTransform';
+import { FLOOR_PLAN_WIDTH, FLOOR_PLAN_LENGTH, ZONE_GEOREFERENCE } from '../../config/constants';
 import { localToWgs84 } from '../../utils/georeferencing';
 import FenceLayer from './FenceLayer';
 import TagLayer from './TagLayer';
 import type { Fence, Location, LocationProvider, Trackable } from '../../types/omlox';
+import type { LabelDisplayMode } from '../SettingsDialog/SettingsDialog';
 
 interface FloorPlanProps {
   fences: Fence[];
@@ -17,6 +18,9 @@ interface FloorPlanProps {
   showTrackables: boolean;
   showFences: boolean;
   showGrid: boolean;
+  gridSize: number;
+  animateMovement: boolean;
+  labelDisplay: LabelDisplayMode;
   fenceEvents?: import('../../types/omlox').FenceEvent[];
 }
 
@@ -30,34 +34,58 @@ export default function FloorPlan({
   showTrackables,
   showFences,
   showGrid,
+  gridSize,
+  animateMovement,
+  labelDisplay,
   fenceEvents = [],
 }: FloorPlanProps) {
   // Tooltip state for coordinate display
   const [tooltip, setTooltip] = useState<{
     x: number;
     y: number;
-    localX: number;
-    localY: number;
-    lon: number;
-    lat: number;
+    localX?: number;
+    localY?: number;
+    lon?: number;
+    lat?: number;
     entityName?: string;
     entityType?: string;
+    fenceCoordinates?: string;
   } | null>(null);
+
+  // Selected fence for showing point labels
+  const [selectedFenceId, setSelectedFenceId] = useState<string | null>(null);
 
   // Padding around the floor plan (in SVG pixels)
   const padding = 20;
   
   // Calculate floor plan bounds in SVG coordinates with padding
-  // The floor plan area is smaller to leave grey space around all edges
-  const floorPlanX = padding; // Left edge with padding
-  const floorPlanY = padding; // Top edge with padding
-  const floorPlanWidth = SVG_WIDTH - (padding * 2); // Width minus padding on both sides
-  const floorPlanHeight = SVG_HEIGHT - (padding * 2); // Height minus padding on both sides
+  // Maintain aspect ratio based on actual floor dimensions
+  const availableWidth = SVG_WIDTH - (padding * 2);
+  const availableHeight = SVG_HEIGHT - (padding * 2);
+  const floorAspectRatio = FLOOR_PLAN_WIDTH / FLOOR_PLAN_LENGTH;
+  const availableAspectRatio = availableWidth / availableHeight;
+  
+  let floorPlanWidth: number;
+  let floorPlanHeight: number;
+  
+  if (floorAspectRatio > availableAspectRatio) {
+    // Floor is wider relative to available space - constrain by width
+    floorPlanWidth = availableWidth;
+    floorPlanHeight = availableWidth / floorAspectRatio;
+  } else {
+    // Floor is taller relative to available space - constrain by height
+    floorPlanHeight = availableHeight;
+    floorPlanWidth = availableHeight * floorAspectRatio;
+  }
+  
+  // Center the floor plan in the available space
+  const floorPlanX = padding + (availableWidth - floorPlanWidth) / 2;
+  const floorPlanY = padding + (availableHeight - floorPlanHeight) / 2;
 
-  // Grid cell size in meters (5m grid)
-  const gridCellSizeMeters = 5;
+  // Grid cell size in meters (from settings)
+  const gridCellSizeMeters = gridSize;
   const gridCellSizePixelsX = (gridCellSizeMeters / FLOOR_PLAN_WIDTH) * floorPlanWidth;
-  const gridCellSizePixelsY = (gridCellSizeMeters / FLOOR_PLAN_HEIGHT) * floorPlanHeight;
+  const gridCellSizePixelsY = (gridCellSizeMeters / FLOOR_PLAN_LENGTH) * floorPlanHeight;
 
   // Handle right-click on floor plan
   const handleContextMenu = (event: MouseEvent<SVGSVGElement>) => {
@@ -80,7 +108,7 @@ export default function FloorPlan({
     // Convert SVG coordinates to local (meters) coordinates
     // Reverse the transformToSVG calculation
     const scaleToLocalX = FLOOR_PLAN_WIDTH / floorPlanWidth;
-    const scaleToLocalY = FLOOR_PLAN_HEIGHT / floorPlanHeight;
+    const scaleToLocalY = FLOOR_PLAN_LENGTH / floorPlanHeight;
     
     const localX = (svgX - floorPlanX) * scaleToLocalX;
     // Y-axis is flipped in SVG (top = 0, bottom = max)
@@ -107,6 +135,7 @@ export default function FloorPlan({
   // Hide tooltip on regular click or when mouse leaves
   const handleClick = () => {
     setTooltip(null);
+    setSelectedFenceId(null);
   };
 
   // Handle click on provider/trackable icon
@@ -129,14 +158,42 @@ export default function FloorPlan({
     });
   };
 
+  // Handle click on fence
+  const handleFenceClick = (fence: Fence, screenX: number, screenY: number) => {
+    let coordinatesStr = '';
+    
+    if (fence.region.type === 'Polygon') {
+      // Format polygon coordinates
+      const ring = fence.region.coordinates[0];
+      coordinatesStr = ring
+        .map((coord, idx) => `Point ${idx + 1}: [${coord[0]}, ${coord[1]}]m`)
+        .join('\n');
+    } else if (fence.region.type === 'Point' && fence.radius) {
+      // Format circular fence
+      const [x, y] = fence.region.coordinates as [number, number];
+      coordinatesStr = `Center: [${x}, ${y}]m\nRadius: ${fence.radius}m`;
+    }
+
+    // Set selected fence to show point labels
+    setSelectedFenceId(fence.id);
+
+    setTooltip({
+      x: screenX,
+      y: screenY,
+      entityName: fence.name || fence.id,
+      entityType: fence.region.type === 'Polygon' ? 'Polygon Fence' : 'Circular Fence',
+      fenceCoordinates: coordinatesStr,
+    });
+  };
+
   return (
     <Box
       sx={{
         width: '100%',
         height: '100%',
-        borderRadius: 1,
+        borderRadius: 2,
         overflow: 'hidden',
-        backgroundColor: '#e0e0e0',
+        background: 'linear-gradient(135deg, #E8EEF2 0%, #F0F4F8 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -153,9 +210,9 @@ export default function FloorPlan({
         onClick={handleClick}
       >
         <defs>
-          {/* 5x5 meter grid pattern - aligned to bottom-left corner of floor plan */}
+          {/* Grid pattern - aligned to bottom-left corner of floor plan */}
           <pattern
-            id="grid-5m"
+            id="grid-pattern"
             width={gridCellSizePixelsX}
             height={gridCellSizePixelsY}
             patternUnits="userSpaceOnUse"
@@ -165,41 +222,63 @@ export default function FloorPlan({
             <path
               d={`M ${gridCellSizePixelsX} 0 L 0 0 0 ${gridCellSizePixelsY}`}
               fill="none"
-              stroke="#d0d0d0"
-              strokeWidth="1"
+              stroke="rgba(10, 77, 140, 0.25)"
+              strokeWidth="1.5"
+              strokeDasharray="3,3"
             />
           </pattern>
         </defs>
 
-        {/* Layer 1: Grey background container (padding area) - darker for better contrast */}
-        <rect width="100%" height="100%" fill="#e0e0e0" />
+        {/* Layer 1: Background container with subtle gradient */}
+        <defs>
+          <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: '#E8EEF2', stopOpacity: 1 }} />
+            <stop offset="100%" style={{ stopColor: '#F0F4F8', stopOpacity: 1 }} />
+          </linearGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#bgGradient)" />
 
-        {/* Layer 2: Floor plan (white background + grid) */}
+        {/* Layer 2: Floor plan with modern styling */}
         <g id="floor-plan-area">
-          {/* White background */}
+          {/* White background with subtle shadow effect */}
           <rect
             x={floorPlanX}
             y={floorPlanY}
             width={floorPlanWidth}
             height={floorPlanHeight}
-            fill="#ffffff"
+            fill="#FFFFFF"
+            rx={8}
+            ry={8}
           />
           
-          {/* 5x5 meter grid - starts at bottom left (0,0 in local coordinates) */}
+          {/* Inner shadow effect */}
+          <rect
+            x={floorPlanX}
+            y={floorPlanY}
+            width={floorPlanWidth}
+            height={floorPlanHeight}
+            fill="none"
+            stroke="rgba(10, 77, 140, 0.08)"
+            strokeWidth="1"
+            rx={8}
+            ry={8}
+          />
+          
+          {/* Grid - starts at bottom left (0,0 in local coordinates) */}
           {showGrid && (
             <rect
               x={floorPlanX}
               y={floorPlanY}
               width={floorPlanWidth}
               height={floorPlanHeight}
-              fill="url(#grid-5m)"
+              fill="url(#grid-pattern)"
             />
           )}
         </g>
 
         {/* Ground Control Point Labels - shown outside the floor plan in padding area */}
         {showGrid && (
-          <g id="gcp-labels" style={{ fontSize: '9px', fill: '#666', fontFamily: 'monospace' }}>
+          <g id="gcp-labels" style={{ fontSize: '9px', fill: '#5F6F87', fontFamily: 'Inter, monospace', fontWeight: 500 }}>
             {/* Bottom-left corner (0, 0) */}
             {ZONE_GEOREFERENCE.groundControlPoints[0] && (
               <g>
@@ -272,6 +351,8 @@ export default function FloorPlan({
               events={fenceEvents}
               showProviders={showProviders}
               showTrackables={showTrackables}
+              onFenceClick={handleFenceClick}
+              selectedFenceId={selectedFenceId}
             />
           )}
 
@@ -283,6 +364,8 @@ export default function FloorPlan({
             trackableLocations={trackableLocations}
             showProviders={showProviders}
             showTrackables={showTrackables}
+            animateMovement={animateMovement}
+            labelDisplay={labelDisplay}
             padding={padding}
             onEntityClick={handleEntityClick}
           />
@@ -296,13 +379,15 @@ export default function FloorPlan({
             position: 'fixed',
             left: tooltip.x + 10,
             top: tooltip.y + 10,
-            padding: 1.5,
+            padding: 2,
             zIndex: 2000,
             pointerEvents: 'none',
-            boxShadow: 3,
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(4px)',
-            minWidth: 180,
+            boxShadow: '0 8px 32px rgba(10, 77, 140, 0.2)',
+            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(10, 77, 140, 0.12)',
+            borderRadius: 3,
+            minWidth: 200,
           }}
         >
           {tooltip.entityName && (
@@ -315,18 +400,31 @@ export default function FloorPlan({
               {tooltip.entityType}
             </Typography>
           )}
-          <Typography variant="caption" component="div" sx={{ fontWeight: 600, mb: 0.5, mt: tooltip.entityName ? 0.5 : 0, color: 'text.primary' }}>
-            Coordinates
-          </Typography>
-          <Typography variant="caption" component="div" sx={{ fontFamily: 'monospace', color: 'primary.main' }}>
-            Local: {tooltip.localX.toFixed(2)}m, {tooltip.localY.toFixed(2)}m
-          </Typography>
-          <Typography variant="caption" component="div" sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: '10px' }}>
-            Lat: {tooltip.lat.toFixed(6)}°N
-          </Typography>
-          <Typography variant="caption" component="div" sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: '10px' }}>
-            Lon: {tooltip.lon.toFixed(6)}°E
-          </Typography>
+          {tooltip.fenceCoordinates ? (
+            <>
+              <Typography variant="caption" component="div" sx={{ fontWeight: 600, mb: 0.5, mt: 0.5, color: 'text.primary' }}>
+                Coordinates
+              </Typography>
+              <Box sx={{ fontFamily: 'monospace', fontSize: '10px', color: 'text.secondary', whiteSpace: 'pre-line' }}>
+                {tooltip.fenceCoordinates}
+              </Box>
+            </>
+          ) : (
+            <>
+              <Typography variant="caption" component="div" sx={{ fontWeight: 600, mb: 0.5, mt: tooltip.entityName ? 0.5 : 0, color: 'text.primary' }}>
+                Coordinates
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ fontFamily: 'monospace', color: 'primary.main' }}>
+                Local: {tooltip.localX?.toFixed(2)}m, {tooltip.localY?.toFixed(2)}m
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: '10px' }}>
+                Lat: {tooltip.lat?.toFixed(6)}°N
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: '10px' }}>
+                Lon: {tooltip.lon?.toFixed(6)}°E
+              </Typography>
+            </>
+          )}
         </Paper>
       )}
     </Box>

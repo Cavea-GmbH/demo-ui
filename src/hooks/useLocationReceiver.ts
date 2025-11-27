@@ -30,10 +30,18 @@ interface UseLocationReceiverReturn {
 }
 
 export function useLocationReceiver(): UseLocationReceiverReturn {
-  // Initialize with hardcoded demo data
-  const [providers, setProviders] = useState<LocationProvider[]>(HARDCODED_PROVIDERS);
-  const [trackables, setTrackables] = useState<Trackable[]>(HARDCODED_TRACKABLES);
+  // Check if we should load initial demo data from environment variable
+  const shouldLoadInitialData = import.meta.env.VITE_LOAD_INITIAL_DATA === 'true';
+
+  // Initialize with hardcoded demo data if enabled
+  const [providers, setProviders] = useState<LocationProvider[]>(
+    shouldLoadInitialData ? HARDCODED_PROVIDERS : []
+  );
+  const [trackables, setTrackables] = useState<Trackable[]>(
+    shouldLoadInitialData ? HARDCODED_TRACKABLES : []
+  );
   const [providerLocations, setProviderLocations] = useState<Map<string, Location>>(() => {
+    if (!shouldLoadInitialData) return new Map();
     const map = new Map<string, Location>();
     Object.entries(HARDCODED_LOCATIONS).forEach(([id, location]) => {
       if (id.startsWith('provider-')) {
@@ -43,6 +51,7 @@ export function useLocationReceiver(): UseLocationReceiverReturn {
     return map;
   });
   const [trackableLocations, setTrackableLocations] = useState<Map<string, Location>>(() => {
+    if (!shouldLoadInitialData) return new Map();
     const map = new Map<string, Location>();
     Object.entries(HARDCODED_LOCATIONS).forEach(([id, location]) => {
       if (id.startsWith('trackable-')) {
@@ -52,7 +61,9 @@ export function useLocationReceiver(): UseLocationReceiverReturn {
     return map;
   });
   const [fences] = useState<Fence[]>(HARDCODED_FENCES);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(
+    shouldLoadInitialData ? new Date() : null
+  );
 
   // Receive a location update for a provider
   const receiveProviderLocation = useCallback((providerId: string, location: Location) => {

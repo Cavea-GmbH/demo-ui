@@ -1,5 +1,5 @@
 import type { Point } from '../types/omlox';
-import { FLOOR_PLAN_WIDTH, FLOOR_PLAN_HEIGHT } from '../config/constants';
+import { FLOOR_PLAN_WIDTH, FLOOR_PLAN_LENGTH } from '../config/constants';
 
 // SVG viewport dimensions (pixels)
 const SVG_WIDTH = 800;
@@ -12,7 +12,7 @@ const SVG_HEIGHT = 480;
 export function transformToSVG(
   point: Point, 
   floorWidth: number = FLOOR_PLAN_WIDTH, 
-  floorHeight: number = FLOOR_PLAN_HEIGHT,
+  floorLength: number = FLOOR_PLAN_LENGTH,
   padding: number = 0
 ): [number, number] {
   const [x, y] = point.coordinates;
@@ -21,13 +21,36 @@ export function transformToSVG(
   const availableWidth = SVG_WIDTH - (padding * 2);
   const availableHeight = SVG_HEIGHT - (padding * 2);
   
-  // Scale factors
-  const scaleX = availableWidth / floorWidth;
-  const scaleY = availableHeight / floorHeight;
+  // Maintain aspect ratio based on floor dimensions
+  const floorAspectRatio = floorWidth / floorLength;
+  const availableAspectRatio = availableWidth / availableHeight;
+  
+  let floorPlanWidth: number;
+  let floorPlanHeight: number;
+  let offsetX: number;
+  let offsetY: number;
+  
+  if (floorAspectRatio > availableAspectRatio) {
+    // Floor is wider relative to available space - constrain by width
+    floorPlanWidth = availableWidth;
+    floorPlanHeight = availableWidth / floorAspectRatio;
+    offsetX = 0;
+    offsetY = (availableHeight - floorPlanHeight) / 2;
+  } else {
+    // Floor is taller relative to available space - constrain by height
+    floorPlanHeight = availableHeight;
+    floorPlanWidth = availableHeight * floorAspectRatio;
+    offsetX = (availableWidth - floorPlanWidth) / 2;
+    offsetY = 0;
+  }
+  
+  // Scale factors (uniform scaling to maintain aspect ratio)
+  const scaleX = floorPlanWidth / floorWidth;
+  const scaleY = floorPlanHeight / floorLength;
   
   // Transform: API coordinates (meters) -> SVG pixels
-  const svgX = padding + (x * scaleX);
-  const svgY = padding + (availableHeight - (y * scaleY)); // Flip Y axis (SVG origin is top-left)
+  const svgX = padding + offsetX + (x * scaleX);
+  const svgY = padding + offsetY + (floorPlanHeight - (y * scaleY)); // Flip Y axis (SVG origin is top-left)
   
   return [svgX, svgY];
 }
@@ -35,12 +58,41 @@ export function transformToSVG(
 /**
  * Transform a coordinate from SVG pixel space to API space (meters)
  */
-export function transformFromSVG(svgX: number, svgY: number, floorWidth: number = FLOOR_PLAN_WIDTH, floorHeight: number = FLOOR_PLAN_HEIGHT): [number, number] {
-  const scaleX = SVG_WIDTH / floorWidth;
-  const scaleY = SVG_HEIGHT / floorHeight;
+export function transformFromSVG(svgX: number, svgY: number, floorWidth: number = FLOOR_PLAN_WIDTH, floorLength: number = FLOOR_PLAN_LENGTH, padding: number = 0): [number, number] {
+  // Calculate available space (accounting for padding)
+  const availableWidth = SVG_WIDTH - (padding * 2);
+  const availableHeight = SVG_HEIGHT - (padding * 2);
   
-  const x = svgX / scaleX;
-  const y = (SVG_HEIGHT - svgY) / scaleY; // Flip Y axis
+  // Maintain aspect ratio based on floor dimensions
+  const floorAspectRatio = floorWidth / floorLength;
+  const availableAspectRatio = availableWidth / availableHeight;
+  
+  let floorPlanWidth: number;
+  let floorPlanHeight: number;
+  let offsetX: number;
+  let offsetY: number;
+  
+  if (floorAspectRatio > availableAspectRatio) {
+    // Floor is wider relative to available space - constrain by width
+    floorPlanWidth = availableWidth;
+    floorPlanHeight = availableWidth / floorAspectRatio;
+    offsetX = 0;
+    offsetY = (availableHeight - floorPlanHeight) / 2;
+  } else {
+    // Floor is taller relative to available space - constrain by height
+    floorPlanHeight = availableHeight;
+    floorPlanWidth = availableHeight * floorAspectRatio;
+    offsetX = (availableWidth - floorPlanWidth) / 2;
+    offsetY = 0;
+  }
+  
+  // Scale factors (uniform scaling to maintain aspect ratio)
+  const scaleX = floorPlanWidth / floorWidth;
+  const scaleY = floorPlanHeight / floorLength;
+  
+  // Inverse transform: SVG pixels -> API coordinates (meters)
+  const x = (svgX - padding - offsetX) / scaleX;
+  const y = (floorPlanHeight - (svgY - padding - offsetY)) / scaleY; // Flip Y axis
   
   return [x, y];
 }

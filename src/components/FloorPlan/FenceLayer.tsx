@@ -1,5 +1,6 @@
 import type { Fence, FenceEvent } from '../../types/omlox';
 import { transformToSVG } from '../../utils/coordinateTransform';
+import { MouseEvent } from 'react';
 
 interface FenceLayerProps {
   fences: Fence[];
@@ -7,6 +8,8 @@ interface FenceLayerProps {
   events?: FenceEvent[];
   showProviders?: boolean;
   showTrackables?: boolean;
+  onFenceClick?: (fence: Fence, screenX: number, screenY: number) => void;
+  selectedFenceId?: string | null;
 }
 
 // Default fence colors (neutral gray)
@@ -79,7 +82,9 @@ export default function FenceLayer({
   padding = 0, 
   events = [], 
   showProviders = true, 
-  showTrackables = true 
+  showTrackables = true,
+  onFenceClick,
+  selectedFenceId = null
 }: FenceLayerProps) {
   return (
     <g id="fence-layer">
@@ -93,7 +98,16 @@ export default function FenceLayer({
           const radiusPx = fence.radius * (availableWidth / 50); // Scale radius to pixels
 
           return (
-            <g key={fence.id}>
+            <g 
+              key={fence.id}
+              style={{ cursor: onFenceClick ? 'pointer' : 'default' }}
+              onClick={(e: MouseEvent) => {
+                if (onFenceClick) {
+                  e.stopPropagation();
+                  onFenceClick(fence, e.clientX, e.clientY);
+                }
+              }}
+            >
               <circle
                 cx={cx}
                 cy={cy}
@@ -148,7 +162,16 @@ export default function FenceLayer({
           }, undefined, undefined, padding);
 
           return (
-            <g key={fence.id}>
+            <g 
+              key={fence.id}
+              style={{ cursor: onFenceClick ? 'pointer' : 'default' }}
+              onClick={(e: MouseEvent) => {
+                if (onFenceClick) {
+                  e.stopPropagation();
+                  onFenceClick(fence, e.clientX, e.clientY);
+                }
+              }}
+            >
               <polygon
                 points={points}
                 fill={colors.fill}
@@ -167,6 +190,38 @@ export default function FenceLayer({
                   {fence.name}
                 </text>
               )}
+              
+              {/* Point labels when fence is selected */}
+              {selectedFenceId === fence.id && ring.slice(0, -1).map((coord, idx) => {
+                // Skip the last point as it's the same as the first (closing point)
+                const point = { type: 'Point' as const, coordinates: [coord[0], coord[1]] as [number, number] };
+                const [px, py] = transformToSVG(point, undefined, undefined, padding);
+                
+                return (
+                  <g key={`point-${idx}`}>
+                    {/* Point circle with number inside */}
+                    <circle
+                      cx={px}
+                      cy={py}
+                      r="6"
+                      fill="#ffffff"
+                      stroke={colors.stroke}
+                      strokeWidth="1.5"
+                    />
+                    {/* Point label inside circle */}
+                    <text
+                      x={px}
+                      y={py + 3}
+                      textAnchor="middle"
+                      fontSize="8"
+                      fill={colors.stroke}
+                      fontWeight="600"
+                    >
+                      {idx + 1}
+                    </text>
+                  </g>
+                );
+              })}
             </g>
           );
         }
