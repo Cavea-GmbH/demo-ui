@@ -100,8 +100,22 @@ export function useLocationReceiver(): UseLocationReceiverReturn {
   const receiveProviderLocation = useCallback((providerId: string, location: Location) => {
     console.log(`📍 Updating provider location: ${providerId}`, location);
     
+    // Construct zone georeference from config
+    const zoneGeoreference = config?.zone ? {
+      zoneId: config.zone.id ?? undefined,
+      position: config.zone.position ? {
+        type: 'Point' as const,
+        coordinates: config.zone.position,
+      } : undefined,
+      groundControlPoints: config.zone.groundControlPoints,
+    } : {
+      zoneId: undefined,
+      position: undefined,
+      groundControlPoints: [],
+    };
+    
     // Normalize location to local coordinates (convert WGS84 if needed)
-    const normalizedLocation = normalizeLocationToLocal(location);
+    const normalizedLocation = normalizeLocationToLocal(location, zoneGeoreference);
     
     // Update provider location
     setProviderLocations((prev) => {
@@ -197,14 +211,28 @@ export function useLocationReceiver(): UseLocationReceiverReturn {
         return prev;
       });
     }
-  }, []);
+  }, [config]);
 
   // Receive a location update for a trackable
   const receiveTrackableLocation = useCallback((trackableId: string, location: Location) => {
     console.log(`📍 Updating trackable location: ${trackableId}`, location);
     
+    // Construct zone georeference from config
+    const zoneGeoreference = config?.zone ? {
+      zoneId: config.zone.id ?? undefined,
+      position: config.zone.position ? {
+        type: 'Point' as const,
+        coordinates: config.zone.position,
+      } : undefined,
+      groundControlPoints: config.zone.groundControlPoints,
+    } : {
+      zoneId: undefined,
+      position: undefined,
+      groundControlPoints: [],
+    };
+    
     // Normalize location to local coordinates (convert WGS84 if needed)
-    const normalizedLocation = normalizeLocationToLocal(location);
+    const normalizedLocation = normalizeLocationToLocal(location, zoneGeoreference);
     
     setTrackableLocations((prev) => {
       const newMap = new Map(prev);
@@ -231,7 +259,7 @@ export function useLocationReceiver(): UseLocationReceiverReturn {
       }
       return prev;
     });
-  }, []);
+  }, [config]);
 
   // Manually add a provider (or update if exists)
   const addProvider = useCallback((provider: LocationProvider) => {

@@ -159,9 +159,9 @@ function AppContent() {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      {/* Top Bar */}
-      <TopBar
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+        {/* Top Bar */}
+        <TopBar
           isConnected={isConnected}
           isLoading={false}
           pollingEnabled={false}

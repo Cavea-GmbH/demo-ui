@@ -2,6 +2,7 @@ import type { Location, LocationProvider, Trackable } from '../../types/omlox';
 import { transformToSVG, SVG_WIDTH } from '../../utils/coordinateTransform';
 import { MouseEvent } from 'react';
 import type { LabelDisplayMode } from '../SettingsDialog/SettingsDialog';
+import { useConfig } from '../../contexts/ConfigContext';
 
 interface TagLayerProps {
   providers: LocationProvider[];
@@ -41,6 +42,11 @@ export default function TagLayer({
   padding = 0,
   onEntityClick,
 }: TagLayerProps) {
+  // Get floor dimensions from runtime config
+  const { config } = useConfig();
+  const floorWidth = config?.floor?.width ?? 50;
+  const floorLength = config?.floor?.length ?? 30;
+
   // Get transition class for animations
   const getTransitionStyle = (x: number, y: number) => {
     if (!animateMovement) {
@@ -61,7 +67,7 @@ export default function TagLayer({
           if (!location) return null;
 
           // Validate coordinates are valid numbers
-          const [x, y] = transformToSVG(location.position, undefined, undefined, padding);
+          const [x, y] = transformToSVG(location.position, floorWidth, floorLength, padding);
           if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
             console.error(`Invalid coordinates for provider ${provider.id}:`, location.position);
             return null;
@@ -127,7 +133,7 @@ export default function TagLayer({
           if (!location) return null;
 
           // Validate coordinates are valid numbers
-          const [x, y] = transformToSVG(location.position, undefined, undefined, padding);
+          const [x, y] = transformToSVG(location.position, floorWidth, floorLength, padding);
           if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
             console.error(`Invalid coordinates for trackable ${trackable.id}:`, location.position);
             return null;
@@ -140,7 +146,7 @@ export default function TagLayer({
           }
 
           const availableWidth = SVG_WIDTH - (padding * 2);
-          const radius = trackable.radius ? trackable.radius * (availableWidth / 50) : 10;
+          const radius = trackable.radius ? trackable.radius * (availableWidth / floorWidth) : 10;
 
           return (
             <g 

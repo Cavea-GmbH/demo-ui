@@ -1,6 +1,7 @@
 import type { Fence, FenceEvent } from '../../types/omlox';
 import { transformToSVG } from '../../utils/coordinateTransform';
 import { MouseEvent, useState, useEffect } from 'react';
+import { useConfig } from '../../contexts/ConfigContext';
 
 interface FenceLayerProps {
   fences: Fence[];
@@ -86,6 +87,11 @@ export default function FenceLayer({
   onFenceClick,
   selectedFenceId = null
 }: FenceLayerProps) {
+  // Get floor dimensions from runtime config
+  const { config } = useConfig();
+  const floorWidth = config?.floor?.width ?? 50;
+  const floorLength = config?.floor?.length ?? 30;
+  
   // Force re-render to update fence colors after event time window expires
   const [, setTick] = useState(0);
 
@@ -127,9 +133,9 @@ export default function FenceLayer({
         
         if (fence.region.type === 'Point' && fence.radius) {
           // Circular fence
-          const [cx, cy] = transformToSVG(fence.region, undefined, undefined, padding);
+          const [cx, cy] = transformToSVG(fence.region, floorWidth, floorLength, padding);
           const availableWidth = 800 - (padding * 2);
-          const radiusPx = fence.radius * (availableWidth / 50); // Scale radius to pixels
+          const radiusPx = fence.radius * (availableWidth / floorWidth); // Scale radius to pixels
 
           return (
             <g 
@@ -176,7 +182,7 @@ export default function FenceLayer({
           const points = ring
             .map((coord) => {
               const point = { type: 'Point' as const, coordinates: [coord[0], coord[1]] as [number, number] };
-              const [x, y] = transformToSVG(point, undefined, undefined, padding);
+              const [x, y] = transformToSVG(point, floorWidth, floorLength, padding);
               return `${x},${y}`;
             })
             .join(' ');
@@ -193,7 +199,7 @@ export default function FenceLayer({
           const [labelX, labelY] = transformToSVG({
             type: 'Point',
             coordinates: [centerX, centerY],
-          }, undefined, undefined, padding);
+          }, floorWidth, floorLength, padding);
 
           return (
             <g 
@@ -229,7 +235,7 @@ export default function FenceLayer({
               {selectedFenceId === fence.id && ring.slice(0, -1).map((coord, idx) => {
                 // Skip the last point as it's the same as the first (closing point)
                 const point = { type: 'Point' as const, coordinates: [coord[0], coord[1]] as [number, number] };
-                const [px, py] = transformToSVG(point, undefined, undefined, padding);
+                const [px, py] = transformToSVG(point, floorWidth, floorLength, padding);
                 
                 return (
                   <g key={`point-${idx}`}>
