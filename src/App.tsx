@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ThemeProvider, CssBaseline, Box, CircularProgress, Typography, Alert } from '@mui/material';
 import { theme } from './theme/theme';
 import { ConfigProvider, useConfig } from './contexts/ConfigContext';
@@ -49,22 +49,34 @@ function AppContent() {
     fences
   );
 
+  // Use refs to store the latest callbacks without causing SSE reconnection
+  const receiveProviderLocationRef = useRef(receiveProviderLocation);
+  const receiveTrackableLocationRef = useRef(receiveTrackableLocation);
+  
+  // Update refs when callbacks change (without disconnecting SSE)
+  useEffect(() => {
+    receiveProviderLocationRef.current = receiveProviderLocation;
+    receiveTrackableLocationRef.current = receiveTrackableLocation;
+  }, [receiveProviderLocation, receiveTrackableLocation]);
+
   // Connect to SSE server and register to receive pushed location updates
+  // This effect only runs once on mount (no dependencies on callbacks)
   useEffect(() => {
     // Connect to SSE server
+    console.log('🔌 Initializing SSE connection...');
     sseClient.connect();
     setIsConnected(true);
 
-    // Register to receive pushed location updates
+    // Register to receive pushed location updates using refs
     const unsubscribeProvider = locationPushReceiver.onProviderLocationUpdate(
       (providerId, location) => {
-        receiveProviderLocation(providerId, location);
+        receiveProviderLocationRef.current(providerId, location);
       }
     );
 
     const unsubscribeTrackable = locationPushReceiver.onTrackableLocationUpdate(
       (trackableId, location) => {
-        receiveTrackableLocation(trackableId, location);
+        receiveTrackableLocationRef.current(trackableId, location);
       }
     );
 
@@ -74,12 +86,13 @@ function AppContent() {
     }, 2000);
 
     return () => {
+      console.log('🔌 Disconnecting SSE...');
       sseClient.disconnect();
       unsubscribeProvider();
       unsubscribeTrackable();
       clearInterval(statusInterval);
     };
-  }, [receiveProviderLocation, receiveTrackableLocation]);
+  }, []); // Empty dependencies - only run once on mount
 
   // CRUD handlers
   const handleProviderAdded = (provider: LocationProvider) => {
