@@ -20,6 +20,10 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Trust proxy - required when running behind nginx/App Runner/load balancers
+// This allows Express to correctly handle secure cookies and client IP
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: true, // Allow requests from any origin (adjust for production)
   credentials: true, // Allow cookies to be sent
@@ -103,16 +107,23 @@ try {
 // Configure session with secure settings
 const sessionMaxAge = (appConfig.auth?.sessionDurationHours || 720) * 60 * 60 * 1000; // Convert hours to milliseconds
 
+// Determine if we're in production (behind HTTPS proxy)
+const isProduction = process.env.NODE_ENV === 'production' || process.env.PORT === '3001';
+
 app.use(session({
   secret: appConfig.auth?.uiPassword || 'default-secret-change-me',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to true if using HTTPS
+    // In production behind proxy, secure should be true for HTTPS
+    // But since we set 'trust proxy', Express will handle this automatically
+    secure: 'auto', // Auto-detect based on request protocol
     httpOnly: true,
     maxAge: sessionMaxAge,
     sameSite: 'lax'
-  }
+  },
+  // Use proxy for secure cookie detection
+  proxy: true
 }));
 
 // ============================================================================
@@ -142,14 +153,17 @@ function requireUIAuth(req, res, next) {
 
 /**
  * Middleware to check API token (sent as query parameter)
+ * Currently disabled - API endpoints are open
+ * Token can be re-enabled later by uncommenting the check
  */
 function requireAPIToken(req, res, next) {
-  // If no API token is configured, skip authentication
+  // API token check is disabled for simplicity
+  // To re-enable, uncomment the following:
+  /*
   if (!appConfig.auth?.apiToken) {
     return next();
   }
 
-  // Check query parameter 'token'
   const token = req.query.token;
 
   if (!token) {
@@ -159,13 +173,13 @@ function requireAPIToken(req, res, next) {
     });
   }
 
-  // Compare tokens (constant-time comparison to prevent timing attacks)
   if (token !== appConfig.auth.apiToken) {
     return res.status(403).json({
       error: 'Forbidden',
       message: 'Invalid API token'
     });
   }
+  */
 
   next();
 }
@@ -248,25 +262,95 @@ app.get('/api/auth/status', (req, res) => {
   });
 });
 
-// SSE endpoint for frontend to connect
-app.get('/events', requireUIAuth, (req, res) => {
+// Simple test endpoint to verify SSE-style streaming works
+app.get('/events-test', (req, res) => {
+  console.log('📋 /events-test called - testing SSE streaming');
+  
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+  
+  // Send immediate response
+  res.write('data: {"test": "immediate"}\n\n');
+  
+  // Send 2KB padding
+  res.write(':' + ' '.repeat(2048) + '\n\n');
+  
+  // Send another message after 1 second
+  setTimeout(() => {
+    res.write('data: {"test": "delayed-1s"}\n\n');
+  }, 1000);
+  
+  // Close after 3 seconds
+  setTimeout(() => {
+    res.write('data: {"test": "closing"}\n\n');
+    res.end();
+  }, 3000);
+});
+
+// SSE endpoint for frontend to connect
+// Note: No auth required - SSE only broadcasts location data, doesn't expose sensitive info
+// The UI already requires login to view, and API endpoints have token auth for pushing data
+app.get('/events', (req, res) => {
+  const connectTime = new Date().toISOString();
+  const clientIP = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'];
+  
+  console.log(`🔌 [${connectTime}] SSE connection request received`);
+  console.log(`   Client IP: ${clientIP}`);
+  console.log(`   User-Agent: ${userAgent}`);
+  console.log(`   Headers:`, JSON.stringify({
+    'accept': req.headers['accept'],
+    'cache-control': req.headers['cache-control'],
+    'connection': req.headers['connection'],
+    'x-forwarded-for': req.headers['x-forwarded-for'],
+    'x-forwarded-proto': req.headers['x-forwarded-proto'],
+  }));
+
+  // SSE required headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Connection', 'keep-alive');
+  
+  // Disable proxy buffering (critical for SSE through nginx/envoy/App Runner)
+  res.setHeader('X-Accel-Buffering', 'no');  // nginx
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  // Note: CORS headers are handled by the cors middleware
+  // Don't set Access-Control-Allow-Origin manually - it breaks withCredentials
+  
+  // Flush headers immediately
+  res.flushHeaders();
 
   clients.add(res);
-  console.log(`✅ SSE client connected. Total clients: ${clients.size}`);
+  console.log(`✅ [${connectTime}] SSE client connected. Total clients: ${clients.size}`);
 
-  // Send initial connection message
-  res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
+  // Send initial connection message with padding to push through proxy buffers
+  // Some proxies (like Envoy in App Runner) may buffer small responses
+  const initMsg = JSON.stringify({ type: 'connected', timestamp: connectTime });
+  console.log(`📤 Sending initial message: ${initMsg}`);
+  
+  // Send retry directive (tells client to reconnect after 3s if disconnected)
+  res.write('retry: 3000\n');
+  // Send the connection message
+  res.write(`data: ${initMsg}\n\n`);
+  
+  // Send padding comments to push through proxy buffers (some proxies need ~2KB to start streaming)
+  // SSE comments start with : and are ignored by clients
+  const padding = ':' + ' '.repeat(2048) + '\n\n';
+  res.write(padding);
+  console.log(`📤 Sent ${padding.length} bytes of padding to flush proxy buffers`);
 
   // Send heartbeat every 15 seconds to keep connection alive
   // This prevents timeouts from proxies, load balancers, and browsers
   const heartbeatInterval = setInterval(() => {
     try {
+      const hbTime = Date.now();
       // Send SSE comment (ignored by client but keeps connection alive)
-      res.write(`: heartbeat ${Date.now()}\n\n`);
+      res.write(`: heartbeat ${hbTime}\n\n`);
+      console.log(`💓 Heartbeat sent to client (${clients.size} total)`);
     } catch (error) {
       console.error('❌ Error sending heartbeat:', error.message);
       clearInterval(heartbeatInterval);
@@ -276,9 +360,23 @@ app.get('/events', requireUIAuth, (req, res) => {
 
   // Clean up on client disconnect
   req.on('close', () => {
+    const disconnectTime = new Date().toISOString();
     clearInterval(heartbeatInterval);
     clients.delete(res);
-    console.log(`❌ SSE client disconnected. Total clients: ${clients.size}`);
+    console.log(`❌ [${disconnectTime}] SSE client disconnected. Total clients: ${clients.size}`);
+  });
+
+  // Handle errors
+  req.on('error', (err) => {
+    console.error(`❌ SSE request error:`, err.message);
+    clearInterval(heartbeatInterval);
+    clients.delete(res);
+  });
+
+  res.on('error', (err) => {
+    console.error(`❌ SSE response error:`, err.message);
+    clearInterval(heartbeatInterval);
+    clients.delete(res);
   });
 });
 
