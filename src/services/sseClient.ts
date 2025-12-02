@@ -21,7 +21,9 @@ class SSEClient {
       this.eventSource = null;
     }
 
-    const url = SSE_ENDPOINT;
+    // Add cache-busting parameter to prevent browser from reusing stale connections
+    const cacheBuster = Date.now();
+    const url = `${SSE_ENDPOINT}?_t=${cacheBuster}`;
     const fullUrl = new URL(url, window.location.origin).href;
     const connectTime = new Date().toISOString();
     
@@ -30,6 +32,7 @@ class SSEClient {
     console.log(`   Origin: ${window.location.origin}`);
     console.log(`   Protocol: ${window.location.protocol}`);
     console.log(`   Reconnect attempt: ${this.reconnectAttempts}`);
+    console.log(`   Cache buster: ${cacheBuster}`);
 
     try {
       // Note: withCredentials is not needed for same-origin requests (nginx proxies both frontend and backend)

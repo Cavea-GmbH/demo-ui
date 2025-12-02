@@ -278,19 +278,39 @@ app.get('/events', (req, res) => {
     'x-forwarded-proto': req.headers['x-forwarded-proto'],
   }));
 
+  // SSE required headers
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Connection', 'keep-alive');
+  
+  // Disable proxy buffering (critical for SSE through nginx/envoy/App Runner)
+  res.setHeader('X-Accel-Buffering', 'no');  // nginx
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
   // Note: CORS headers are handled by the cors middleware
   // Don't set Access-Control-Allow-Origin manually - it breaks withCredentials
+  
+  // Flush headers immediately
+  res.flushHeaders();
 
   clients.add(res);
   console.log(`✅ [${connectTime}] SSE client connected. Total clients: ${clients.size}`);
 
-  // Send initial connection message
+  // Send initial connection message with padding to push through proxy buffers
+  // Some proxies (like Envoy in App Runner) may buffer small responses
   const initMsg = JSON.stringify({ type: 'connected', timestamp: connectTime });
   console.log(`📤 Sending initial message: ${initMsg}`);
+  
+  // Send retry directive (tells client to reconnect after 3s if disconnected)
+  res.write('retry: 3000\n');
+  // Send the connection message
   res.write(`data: ${initMsg}\n\n`);
+  
+  // Send padding comments to push through proxy buffers (some proxies need ~2KB to start streaming)
+  // SSE comments start with : and are ignored by clients
+  const padding = ':' + ' '.repeat(2048) + '\n\n';
+  res.write(padding);
+  console.log(`📤 Sent ${padding.length} bytes of padding to flush proxy buffers`);
 
   // Send heartbeat every 15 seconds to keep connection alive
   // This prevents timeouts from proxies, load balancers, and browsers
