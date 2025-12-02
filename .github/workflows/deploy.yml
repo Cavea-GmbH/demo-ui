@@ -49,6 +49,11 @@ jobs:
           ZONE_POSITION='${{ vars.ZONE_POSITION }}'
           GCP='${{ vars.GROUND_CONTROL_POINTS }}'
           
+          # Authentication settings (optional)
+          UI_PASSWORD="${{ secrets.UI_PASSWORD || 'null' }}"
+          API_TOKEN="${{ secrets.API_TOKEN || 'null' }}"
+          SESSION_HOURS="${{ vars.SESSION_DURATION_HOURS || '720' }}"
+          
           echo "🔧 Building for $ENV environment"
           echo "📐 Floor: ${FLOOR_WIDTH}m x ${FLOOR_LENGTH}m"
           
@@ -79,6 +84,11 @@ jobs:
                 "provider-ble-001": {"position":{"type":"Point","coordinates":[30,20]},"source":"demo-zone","provider_type":"ble-mesh","provider_id":"provider-ble-001","crs":"local","floor":0,"accuracy":1.5,"trackables":["trackable-asset-001"]},
                 "trackable-asset-001": {"position":{"type":"Point","coordinates":[5,5]},"source":"demo-zone","provider_type":"uwb","provider_id":"provider-uwb-001","crs":"local","floor":0,"accuracy":0.5}
               }
+            },
+            "auth": {
+              "uiPassword": ${UI_PASSWORD},
+              "apiToken": ${API_TOKEN},
+              "sessionDurationHours": ${SESSION_HOURS}
             }
           }
           EOF

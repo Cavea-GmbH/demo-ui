@@ -256,10 +256,10 @@ function MainApp() {
 }
 
 function AppContent() {
-  const { config, loading: configLoading, error: configError } = useConfig();
+  const { config, isLoading, error } = useConfig();
 
   // Show loading state while config is being fetched
-  if (configLoading) {
+  if (isLoading) {
     return (
       <Box
         sx={{
@@ -280,7 +280,7 @@ function AppContent() {
   }
 
   // Show error state if config failed to load
-  if (configError || !config) {
+  if (error || !config) {
     return (
       <Box
         sx={{
@@ -296,7 +296,7 @@ function AppContent() {
             Failed to Load Configuration
           </Typography>
           <Typography variant="body2">
-            {configError || 'Configuration is not available'}
+            {error ? String(error) : 'Configuration is not available'}
           </Typography>
           <Typography variant="body2" sx={{ mt: 2 }}>
             Please ensure the server is running and configured correctly.
