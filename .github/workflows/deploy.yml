@@ -175,6 +175,33 @@ jobs:
         if: github.ref == 'refs/heads/dev'
         run: |
           echo "🚀 Deploying to App Runner (Development)..."
+          
+          # Wait for App Runner to be ready (max 5 minutes)
+          MAX_ATTEMPTS=10
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            STATUS=$(aws apprunner describe-service \
+              --service-arn ${{ vars.APP_RUNNER_SERVICE_ARN }} \
+              --query 'Service.Status' --output text \
+              --region eu-central-1)
+            
+            echo "📊 App Runner status: $STATUS"
+            
+            if [ "$STATUS" = "RUNNING" ]; then
+              break
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+              echo "⏳ Waiting 30s for App Runner to be ready... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+              sleep 30
+            fi
+          done
+          
+          if [ "$STATUS" != "RUNNING" ]; then
+            echo "⚠️ App Runner not ready after waiting, attempting update anyway..."
+          fi
+          
           aws apprunner update-service \
             --service-arn ${{ vars.APP_RUNNER_SERVICE_ARN }} \
             --source-configuration "ImageRepository={ImageIdentifier=${{ env.IMAGE_URI }},ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
