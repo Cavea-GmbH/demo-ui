@@ -16,19 +16,31 @@ class SSEClient {
 
   connect(): void {
     if (this.eventSource) {
+      console.log('🔌 Closing existing SSE connection before reconnect');
       this.eventSource.close();
+      this.eventSource = null;
     }
 
     const url = SSE_ENDPOINT;
-    console.log(`🔌 Connecting to SSE server: ${url}`);
+    const fullUrl = new URL(url, window.location.origin).href;
+    const connectTime = new Date().toISOString();
+    
+    console.log(`🔌 [${connectTime}] Connecting to SSE server...`);
+    console.log(`   Full URL: ${fullUrl}`);
+    console.log(`   Origin: ${window.location.origin}`);
+    console.log(`   Protocol: ${window.location.protocol}`);
+    console.log(`   Reconnect attempt: ${this.reconnectAttempts}`);
 
     try {
       // Note: withCredentials is not needed for same-origin requests (nginx proxies both frontend and backend)
       // Cookies are sent automatically for same-origin requests
       this.eventSource = new EventSource(url);
+      console.log(`🔌 EventSource created, readyState: ${this.eventSource.readyState} (0=CONNECTING)`);
 
       this.eventSource.onopen = () => {
-        console.log('✅ SSE connection opened successfully');
+        const openTime = new Date().toISOString();
+        console.log(`✅ [${openTime}] SSE connection opened successfully`);
+        console.log(`   readyState: ${this.eventSource?.readyState} (1=OPEN)`);
         this.reconnectAttempts = 0;
       };
 
@@ -42,9 +54,24 @@ class SSEClient {
         }
       };
 
-      this.eventSource.onerror = (error) => {
+      this.eventSource.onerror = (error: Event) => {
+        const errorTime = new Date().toISOString();
         const state = this.eventSource?.readyState;
-        console.error('❌ SSE connection error. State:', state === 0 ? 'CONNECTING' : state === 1 ? 'OPEN' : 'CLOSED', error);
+        const stateStr = state === 0 ? 'CONNECTING' : state === 1 ? 'OPEN' : 'CLOSED';
+        
+        console.error(`❌ [${errorTime}] SSE connection error`);
+        console.error(`   readyState: ${state} (${stateStr})`);
+        console.error(`   Error event:`, error);
+        console.error(`   Event type: ${error.type}`);
+        console.error(`   Target URL: ${(error.target as EventSource)?.url || 'unknown'}`);
+        
+        // Log additional details from the error event
+        if (error.target) {
+          const target = error.target as EventSource;
+          console.error(`   EventSource URL: ${target.url}`);
+          console.error(`   EventSource readyState: ${target.readyState}`);
+          console.error(`   EventSource withCredentials: ${target.withCredentials}`);
+        }
         
         // Attempt to reconnect on any error (CLOSED state or connection failure)
         // EventSource may stay in CONNECTING state on some failures

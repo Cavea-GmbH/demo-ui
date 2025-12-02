@@ -263,6 +263,21 @@ app.get('/api/auth/status', (req, res) => {
 // Note: No auth required - SSE only broadcasts location data, doesn't expose sensitive info
 // The UI already requires login to view, and API endpoints have token auth for pushing data
 app.get('/events', (req, res) => {
+  const connectTime = new Date().toISOString();
+  const clientIP = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'];
+  
+  console.log(`🔌 [${connectTime}] SSE connection request received`);
+  console.log(`   Client IP: ${clientIP}`);
+  console.log(`   User-Agent: ${userAgent}`);
+  console.log(`   Headers:`, JSON.stringify({
+    'accept': req.headers['accept'],
+    'cache-control': req.headers['cache-control'],
+    'connection': req.headers['connection'],
+    'x-forwarded-for': req.headers['x-forwarded-for'],
+    'x-forwarded-proto': req.headers['x-forwarded-proto'],
+  }));
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -270,17 +285,21 @@ app.get('/events', (req, res) => {
   // Don't set Access-Control-Allow-Origin manually - it breaks withCredentials
 
   clients.add(res);
-  console.log(`✅ SSE client connected. Total clients: ${clients.size}`);
+  console.log(`✅ [${connectTime}] SSE client connected. Total clients: ${clients.size}`);
 
   // Send initial connection message
-  res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
+  const initMsg = JSON.stringify({ type: 'connected', timestamp: connectTime });
+  console.log(`📤 Sending initial message: ${initMsg}`);
+  res.write(`data: ${initMsg}\n\n`);
 
   // Send heartbeat every 15 seconds to keep connection alive
   // This prevents timeouts from proxies, load balancers, and browsers
   const heartbeatInterval = setInterval(() => {
     try {
+      const hbTime = Date.now();
       // Send SSE comment (ignored by client but keeps connection alive)
-      res.write(`: heartbeat ${Date.now()}\n\n`);
+      res.write(`: heartbeat ${hbTime}\n\n`);
+      console.log(`💓 Heartbeat sent to client (${clients.size} total)`);
     } catch (error) {
       console.error('❌ Error sending heartbeat:', error.message);
       clearInterval(heartbeatInterval);
@@ -290,9 +309,23 @@ app.get('/events', (req, res) => {
 
   // Clean up on client disconnect
   req.on('close', () => {
+    const disconnectTime = new Date().toISOString();
     clearInterval(heartbeatInterval);
     clients.delete(res);
-    console.log(`❌ SSE client disconnected. Total clients: ${clients.size}`);
+    console.log(`❌ [${disconnectTime}] SSE client disconnected. Total clients: ${clients.size}`);
+  });
+
+  // Handle errors
+  req.on('error', (err) => {
+    console.error(`❌ SSE request error:`, err.message);
+    clearInterval(heartbeatInterval);
+    clients.delete(res);
+  });
+
+  res.on('error', (err) => {
+    console.error(`❌ SSE response error:`, err.message);
+    clearInterval(heartbeatInterval);
+    clients.delete(res);
   });
 });
 

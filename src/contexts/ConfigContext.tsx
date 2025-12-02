@@ -21,11 +21,12 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
   const [error, setError] = useState<Error | null>(null);
 
   const loadConfig = async () => {
+    const loadTime = new Date().toISOString();
     try {
       setIsLoading(true);
       setError(null);
       
-      console.log('🔄 Loading runtime configuration...');
+      console.log(`🔄 [${loadTime}] Loading runtime configuration...`);
       const fetchedConfig = await fetchConfig();
       
       if (!validateConfig(fetchedConfig)) {

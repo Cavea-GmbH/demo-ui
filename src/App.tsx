@@ -19,10 +19,13 @@ import type { LocationProvider, Trackable } from './types/omlox';
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { authRequired, authenticated, loading: authLoading } = useAuth();
 
+  console.log(`🚪 AuthGate render: loading=${authLoading}, authRequired=${authRequired}, authenticated=${authenticated}`);
+
   // IMPORTANT: Wait for auth check to complete BEFORE rendering anything
   // This prevents premature mounting of MainApp (and SSE connection)
   // which would then unmount when auth state changes
   if (authLoading) {
+    console.log(`🚪 AuthGate: showing loading spinner (waiting for auth check)`);
     return (
       <Box
         sx={{
@@ -44,9 +47,11 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   // Auth check complete - now decide what to render
   if (authRequired && !authenticated) {
+    console.log(`🚪 AuthGate: showing Login (auth required but not authenticated)`);
     return <Login />;
   }
 
+  console.log(`🚪 AuthGate: rendering children (auth not required OR authenticated)`);
   return <>{children}</>;
 }
 
@@ -100,7 +105,8 @@ function MainApp() {
   // This effect only runs once on mount (no dependencies on callbacks)
   useEffect(() => {
     // Connect to SSE server
-    console.log('🔌 Initializing SSE connection...');
+    const mountTime = new Date().toISOString();
+    console.log(`🔌 [${mountTime}] MainApp mounted, initializing SSE connection...`);
     sseClient.connect();
     setIsConnected(true);
 
@@ -123,7 +129,8 @@ function MainApp() {
     }, 2000);
 
     return () => {
-      console.log('🔌 Disconnecting SSE...');
+      const unmountTime = new Date().toISOString();
+      console.log(`🔌 [${unmountTime}] MainApp unmounting, disconnecting SSE...`);
       sseClient.disconnect();
       unsubscribeProvider();
       unsubscribeTrackable();
