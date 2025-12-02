@@ -2,7 +2,7 @@
 
 A lightweight, real-time demo UI for showcasing indoor Real-Time Location Systems (RTLS) technologies. This application visualizes trackables and location providers on a floor plan, displays geofences, and handles fence entry/exit events using the Omlox Hub API specification.
 
-**Live Demo**: [https://vipmm8ztjz.eu-central-1.awsapprunner.com/](https://vipmm8ztjz.eu-central-1.awsapprunner.com/)
+**Live Demo**: [https://demo.cavea-dev.net/](https://demo.cavea-dev.net/)
 
 ## Features
 
@@ -264,7 +264,7 @@ We use separate AWS ECR repositories for production and development:
    - **ECR Repository (Production)**: `343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
    - **ECR Repository (Development)**: `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
    - **App Runner Service**: `cavea-demo-ui-dev` (dev environment)
-   - **Service URL**: [https://vipmm8ztjz.eu-central-1.awsapprunner.com/](https://vipmm8ztjz.eu-central-1.awsapprunner.com/)
+   - **Service URL**: [https://demo.cavea-dev.net/](https://demo.cavea-dev.net/)
 
 3. **IAM Role**: `GitHub-ECS-Deploy-Role-Dev`
    - Trusted entity: GitHub OIDC (`token.actions.githubusercontent.com`)
@@ -556,5 +556,5 @@ This project is maintained internally. For questions or issues, contact the deve
 ---
 
 **Repository**: [https://github.com/Cavea-GmbH/demo-ui](https://github.com/Cavea-GmbH/demo-ui)  
-**Live Demo**: [https://vipmm8ztjz.eu-central-1.awsapprunner.com/](https://vipmm8ztjz.eu-central-1.awsapprunner.com/)
+**Live Demo**: [https://demo.cavea-dev.net/](https://demo.cavea-dev.net/)
 

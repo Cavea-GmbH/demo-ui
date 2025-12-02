@@ -1,10 +1,27 @@
 # API Usage Guide
 
+## Authentication
+
+If API token authentication is enabled (via `apiToken` in config), all location update endpoints require a token:
+
+```
+?token=your-api-token-here
+```
+
+**Example with token:**
+```
+PUT http://localhost:3001/api/providers/0080E126/location?token=your-api-token
+```
+
+If no API token is configured, endpoints are accessible without authentication.
+
+---
+
 ## Provider Location Updates
 
 ### Endpoint
 ```
-POST http://localhost:3001/api/providers/{providerId}/location
+PUT http://localhost:3001/api/providers/{providerId}/location
 ```
 
 ### Important: Provider ID Validation
@@ -26,7 +43,7 @@ The application supports two coordinate systems:
 
 **Correct Usage - Local Coordinates:**
 ```http
-POST http://localhost:3001/api/providers/0080E126/location
+PUT http://localhost:3001/api/providers/0080E126/location?token=YOUR_API_TOKEN
 Content-Type: application/json
 
 {
@@ -46,7 +63,7 @@ Content-Type: application/json
 
 **Correct Usage - WGS84 Coordinates:**
 ```http
-POST http://localhost:3001/api/providers/0080E126/location
+PUT http://localhost:3001/api/providers/0080E126/location?token=YOUR_API_TOKEN
 Content-Type: application/json
 
 {
@@ -68,7 +85,7 @@ Content-Type: application/json
 
 **Error Example - Mismatched IDs:**
 ```http
-POST http://localhost:3001/api/providers/12346/location
+PUT http://localhost:3001/api/providers/12346/location?token=YOUR_API_TOKEN
 Content-Type: application/json
 
 {
@@ -111,14 +128,14 @@ When a location update is received with `crs: "EPSG:4326"`, the application:
 
 ### Endpoint
 ```
-POST http://localhost:3001/api/trackables/{trackableId}/location
+PUT http://localhost:3001/api/trackables/{trackableId}/location?token=YOUR_API_TOKEN
 ```
 
 For trackables, the URL parameter is used as the trackable identifier since the Location object doesn't contain a trackable_id field.
 
 **Example:**
 ```http
-POST http://localhost:3001/api/trackables/aff39ab4-1234-5678-90ab-cdef12345678/location
+PUT http://localhost:3001/api/trackables/aff39ab4-1234-5678-90ab-cdef12345678/location?token=YOUR_API_TOKEN
 Content-Type: application/json
 
 {

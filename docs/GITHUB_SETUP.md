@@ -154,7 +154,15 @@ For **each environment**:
 
 1. Go to environment settings
 2. Click "Add secret" under "Environment secrets"
-3. Add `AWS_OIDC_ROLE_ARN` with your AWS role ARN
+3. Add the following secrets:
+
+| Secret | Description | Required |
+|--------|-------------|----------|
+| `AWS_OIDC_ROLE_ARN` | AWS IAM role ARN for GitHub OIDC authentication | Yes |
+| `UI_PASSWORD` | Password for UI access (leave empty to disable) | No |
+| `API_TOKEN` | Token for API access (leave empty to disable) | No |
+
+**Note:** If `UI_PASSWORD` and `API_TOKEN` are not set, authentication will be disabled (public access).
 
 ### Step 4: Add Variables
 

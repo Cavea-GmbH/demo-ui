@@ -16,15 +16,29 @@ This guide shows you how to push location data to the application using Postman.
    ```
    The app will automatically connect to the proxy server via Server-Sent Events.
 
+## Authentication (Optional)
+
+If API token authentication is enabled, add the token as a query parameter:
+```
+?token=your-api-token-here
+```
+
+---
+
 ## Postman Request Examples
 
 ### 1. Push Provider Location Update
 
-**Request Type:** `POST`
+**Request Type:** `PUT`
 
 **URL:** 
 ```
 http://localhost:3001/api/providers/{providerId}/location
+```
+
+**With Authentication:**
+```
+http://localhost:3001/api/providers/{providerId}/location?token=YOUR_API_TOKEN
 ```
 
 **Example URL:**
@@ -67,11 +81,16 @@ Content-Type: application/json
 
 ### 2. Push Trackable Location Update
 
-**Request Type:** `POST`
+**Request Type:** `PUT`
 
 **URL:** 
 ```
 http://localhost:3001/api/trackables/{trackableId}/location
+```
+
+**With Authentication:**
+```
+http://localhost:3001/api/trackables/{trackableId}/location?token=YOUR_API_TOKEN
 ```
 
 **Example URL:**
