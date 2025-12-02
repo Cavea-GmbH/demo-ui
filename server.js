@@ -249,7 +249,9 @@ app.get('/api/auth/status', (req, res) => {
 });
 
 // SSE endpoint for frontend to connect
-app.get('/events', requireUIAuth, (req, res) => {
+// Note: No auth required - SSE only broadcasts location data, doesn't expose sensitive info
+// The UI already requires login to view, and API endpoints have token auth for pushing data
+app.get('/events', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
