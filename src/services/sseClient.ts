@@ -23,8 +23,9 @@ class SSEClient {
     console.log(`🔌 Connecting to SSE server: ${url}`);
 
     try {
-      // withCredentials: true is required to send session cookies for authentication
-      this.eventSource = new EventSource(url, { withCredentials: true });
+      // Note: withCredentials is not needed for same-origin requests (nginx proxies both frontend and backend)
+      // Cookies are sent automatically for same-origin requests
+      this.eventSource = new EventSource(url);
 
       this.eventSource.onopen = () => {
         console.log('✅ SSE connection opened successfully');
