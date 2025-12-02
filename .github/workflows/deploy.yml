@@ -119,16 +119,21 @@ jobs:
           ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          # Extract version from package.json
+          APP_VERSION=$(cat package.json | jq -r '.version')
+          
           # Determine semantic tag based on branch
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             SEMANTIC_TAG="latest"
             ENV_TAG="prod"
+            VERSION_TAG="v${APP_VERSION}"
+            echo "🏷️  Building image with tags: $IMAGE_TAG, $SEMANTIC_TAG, $ENV_TAG, $VERSION_TAG"
           else
             SEMANTIC_TAG="dev"
             ENV_TAG="dev"
+            VERSION_TAG=""
+            echo "🏷️  Building image with tags: $IMAGE_TAG, $SEMANTIC_TAG, $ENV_TAG"
           fi
-          
-          echo "🏷️  Building image with tags: $IMAGE_TAG, $SEMANTIC_TAG, $ENV_TAG"
           
           # Build with environment-specific config and version info baked in
           docker build \
@@ -140,10 +145,21 @@ jobs:
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$SEMANTIC_TAG
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TAG
           
+          # Add version tag for production (main branch)
+          if [ -n "$VERSION_TAG" ]; then
+            docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
+          fi
+          
           # Push all tags
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$SEMANTIC_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TAG
+          
+          # Push version tag for production
+          if [ -n "$VERSION_TAG" ]; then
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
+            echo "✅ Version tag pushed: $VERSION_TAG"
+          fi
           
           echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
           echo "✅ Images pushed to ECR"
