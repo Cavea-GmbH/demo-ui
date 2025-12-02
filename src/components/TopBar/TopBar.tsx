@@ -1,5 +1,6 @@
-import { Box, AppBar, Toolbar, Typography, Chip, IconButton, ToggleButton, ToggleButtonGroup, Divider } from '@mui/material';
-import { CheckCircle, Error as ErrorIcon, Menu as MenuIcon, Settings as SettingsIcon, Visibility, VisibilityOff } from '@mui/icons-material';
+import { Box, AppBar, Toolbar, Typography, Chip, IconButton, ToggleButton, ToggleButtonGroup, Divider, Tooltip } from '@mui/material';
+import { CheckCircle, Error as ErrorIcon, Menu as MenuIcon, Settings as SettingsIcon, Visibility, VisibilityOff, Logout as LogoutIcon } from '@mui/icons-material';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface TopBarProps {
   isConnected: boolean;
@@ -35,6 +36,8 @@ export default function TopBar({
   onShowTrackablesChange,
   onShowFencesChange,
 }: TopBarProps) {
+  const { authRequired, logout } = useAuth();
+  
   const formatLastUpdate = () => {
     if (!lastUpdate) return 'Never';
     const now = new Date();
@@ -43,6 +46,14 @@ export default function TopBar({
     if (seconds < 60) return `${seconds}s ago`;
     const minutes = Math.floor(seconds / 60);
     return `${minutes}m ago`;
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   return (
@@ -241,6 +252,25 @@ export default function TopBar({
         >
           <SettingsIcon />
         </IconButton>
+
+        {authRequired && (
+          <Tooltip title="Logout">
+            <IconButton
+              color="inherit"
+              aria-label="logout"
+              onClick={handleLogout}
+              sx={{ 
+                ml: 0.5,
+                bgcolor: 'rgba(230, 57, 70, 0.04)',
+                '&:hover': {
+                  bgcolor: 'rgba(230, 57, 70, 0.08)',
+                },
+              }}
+            >
+              <LogoutIcon />
+            </IconButton>
+          </Tooltip>
+        )}
 
         <IconButton
           edge="end"

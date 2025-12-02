@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ThemeProvider, CssBaseline, Box, CircularProgress, Typography, Alert } from '@mui/material';
 import { theme } from './theme/theme';
 import { ConfigProvider, useConfig } from './contexts/ConfigContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useLocationReceiver } from './hooks/useLocationReceiver';
 import { useFenceEvents } from './hooks/useFenceEvents';
 import { useLocalStorage } from './hooks/useLocalStorage';
@@ -11,9 +12,40 @@ import FloorPlan from './components/FloorPlan/FloorPlan';
 import TopBar from './components/TopBar/TopBar';
 import Sidebar from './components/Sidebar/Sidebar';
 import { SettingsDialog, LabelDisplayMode } from './components/SettingsDialog/SettingsDialog';
+import Login from './components/Login/Login';
 import type { LocationProvider, Trackable } from './types/omlox';
 
-function AppContent() {
+// Separate component to avoid hooks ordering issues
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { authRequired, authenticated, loading: authLoading } = useAuth();
+
+  if (authRequired && !authenticated) {
+    if (authLoading) {
+      return (
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+            flexDirection: 'column',
+            gap: 2,
+          }}
+        >
+          <CircularProgress size={60} />
+          <Typography variant="body1" color="text.secondary">
+            Checking authentication...
+          </Typography>
+        </Box>
+      );
+    }
+    return <Login />;
+  }
+
+  return <>{children}</>;
+}
+
+function MainApp() {
   const [isConnected, setIsConnected] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarTab, setSidebarTab] = useState(0);
@@ -121,56 +153,6 @@ function AppContent() {
     removeTrackable(trackableId);
   };
 
-  // Check if config is loaded
-  const { config, isLoading, error } = useConfig();
-
-  // Show loading state while config is being fetched
-  if (isLoading) {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100vh',
-          gap: 2,
-        }}
-      >
-        <CircularProgress size={60} />
-        <Typography variant="h6" color="text.secondary">
-          Loading configuration...
-        </Typography>
-      </Box>
-    );
-  }
-
-  // Show error state if config failed to load
-  if (error || !config) {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100vh',
-          gap: 2,
-          p: 4,
-        }}
-      >
-        <Alert severity="error" sx={{ maxWidth: 600 }}>
-          <Typography variant="h6" gutterBottom>
-            Failed to Load Configuration
-          </Typography>
-          <Typography variant="body2">
-            {error?.message || 'Unable to load application configuration. Please check the server.'}
-          </Typography>
-        </Alert>
-      </Box>
-    );
-  }
-
   return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
         {/* Top Bar */}
@@ -273,13 +255,71 @@ function AppContent() {
   );
 }
 
+function AppContent() {
+  const { config, isLoading, error } = useConfig();
+
+  // Show loading state while config is being fetched
+  if (isLoading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          flexDirection: 'column',
+          gap: 2,
+        }}
+      >
+        <CircularProgress size={60} />
+        <Typography variant="body1" color="text.secondary">
+          Loading configuration...
+        </Typography>
+      </Box>
+    );
+  }
+
+  // Show error state if config failed to load
+  if (error || !config) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          p: 3,
+        }}
+      >
+        <Alert severity="error" sx={{ maxWidth: 600 }}>
+          <Typography variant="h6" gutterBottom>
+            Failed to Load Configuration
+          </Typography>
+          <Typography variant="body2">
+            {error ? String(error) : 'Configuration is not available'}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            Please ensure the server is running and configured correctly.
+          </Typography>
+        </Alert>
+      </Box>
+    );
+  }
+
+  return <MainApp />;
+}
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <ConfigProvider>
-        <AppContent />
-      </ConfigProvider>
+      <AuthProvider>
+        <AuthGate>
+          <ConfigProvider>
+            <AppContent />
+          </ConfigProvider>
+        </AuthGate>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

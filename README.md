@@ -2,7 +2,7 @@
 
 A lightweight, real-time demo UI for showcasing indoor Real-Time Location Systems (RTLS) technologies. This application visualizes trackables and location providers on a floor plan, displays geofences, and handles fence entry/exit events using the Omlox Hub API specification.
 
-**Live Demo**: [https://vipmm8ztjz.eu-central-1.awsapprunner.com/](https://vipmm8ztjz.eu-central-1.awsapprunner.com/)
+**Live Demo**: [https://demo.cavea-dev.net/](https://demo.cavea-dev.net/)
 
 ## Features
 
@@ -13,6 +13,7 @@ A lightweight, real-time demo UI for showcasing indoor Real-Time Location System
 - **Dual Coordinate Support**: Handle both local (x,y) and WGS84 (lat/lon) coordinates with automatic georeferencing
 - **Location Providers & Trackables**: Visualize and toggle between location providers and trackable items
 - **Geofencing**: Display polygonal and circular fences with dynamic entry/exit event coloring
+- **Authentication**: Optional password-protected UI and token-based API security (see [`docs/AUTHENTICATION.md`](docs/AUTHENTICATION.md))
 
 ### Entity Management
 - **CRUD Operations**: Create, edit, and delete location providers and trackables via UI
@@ -263,7 +264,7 @@ We use separate AWS ECR repositories for production and development:
    - **ECR Repository (Production)**: `343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
    - **ECR Repository (Development)**: `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui`
    - **App Runner Service**: `cavea-demo-ui-dev` (dev environment)
-   - **Service URL**: [https://vipmm8ztjz.eu-central-1.awsapprunner.com/](https://vipmm8ztjz.eu-central-1.awsapprunner.com/)
+   - **Service URL**: [https://demo.cavea-dev.net/](https://demo.cavea-dev.net/)
 
 3. **IAM Role**: `GitHub-ECS-Deploy-Role-Dev`
    - Trusted entity: GitHub OIDC (`token.actions.githubusercontent.com`)
@@ -325,6 +326,15 @@ docker push 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-
 ## Configuration
 
 The application uses **runtime configuration** via JSON files. See [`config/README.md`](config/README.md) for detailed configuration options.
+
+### Authentication
+
+The application supports optional authentication for both UI and API access:
+- **UI Password Protection**: Password-only login for web interface
+- **API Token Protection**: Token-based authentication for incoming location data
+- **Configurable Sessions**: Long-lived sessions (default: 30 days)
+
+See [`docs/AUTHENTICATION.md`](docs/AUTHENTICATION.md) for complete setup and security guidelines.
 
 ### Quick Start
 
@@ -546,5 +556,5 @@ This project is maintained internally. For questions or issues, contact the deve
 ---
 
 **Repository**: [https://github.com/Cavea-GmbH/demo-ui](https://github.com/Cavea-GmbH/demo-ui)  
-**Live Demo**: [https://vipmm8ztjz.eu-central-1.awsapprunner.com/](https://vipmm8ztjz.eu-central-1.awsapprunner.com/)
+**Live Demo**: [https://demo.cavea-dev.net/](https://demo.cavea-dev.net/)
 

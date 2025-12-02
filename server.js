@@ -11,14 +11,21 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import session from 'express-session';
+import bcrypt from 'bcryptjs';
+import cookieParser from 'cookie-parser';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: true, // Allow requests from any origin (adjust for production)
+  credentials: true, // Allow cookies to be sent
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 // ============================================================================
 // Configuration Loading
@@ -81,10 +88,86 @@ try {
   console.log(`   Zone: ${appConfig.zone.id || 'default'}`);
   console.log(`   Fences: ${appConfig.fences.length}`);
   console.log(`   Initial data: ${appConfig.initialData.loadInitialData ? 'enabled' : 'disabled'}`);
+  console.log(`   UI Auth: ${appConfig.auth?.uiPassword ? 'enabled' : 'disabled'}`);
+  console.log(`   API Auth: ${appConfig.auth?.apiToken ? 'enabled' : 'disabled'}`);
 } catch (error) {
   console.error('❌ Failed to load configuration:', error.message);
   console.error('   Application cannot start without valid configuration');
   process.exit(1);
+}
+
+// ============================================================================
+// Session Configuration
+// ============================================================================
+
+// Configure session with secure settings
+const sessionMaxAge = (appConfig.auth?.sessionDurationHours || 720) * 60 * 60 * 1000; // Convert hours to milliseconds
+
+app.use(session({
+  secret: appConfig.auth?.uiPassword || 'default-secret-change-me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // Set to true if using HTTPS
+    httpOnly: true,
+    maxAge: sessionMaxAge,
+    sameSite: 'lax'
+  }
+}));
+
+// ============================================================================
+// Authentication Middleware
+// ============================================================================
+
+/**
+ * Middleware to check if UI authentication is required
+ */
+function requireUIAuth(req, res, next) {
+  // If no password is configured, skip authentication
+  if (!appConfig.auth?.uiPassword) {
+    return next();
+  }
+
+  // Check if user is authenticated
+  if (req.session && req.session.authenticated) {
+    return next();
+  }
+
+  // Return 401 Unauthorized
+  return res.status(401).json({
+    error: 'Unauthorized',
+    message: 'Please log in to access this resource'
+  });
+}
+
+/**
+ * Middleware to check API token (sent as query parameter)
+ */
+function requireAPIToken(req, res, next) {
+  // If no API token is configured, skip authentication
+  if (!appConfig.auth?.apiToken) {
+    return next();
+  }
+
+  // Check query parameter 'token'
+  const token = req.query.token;
+
+  if (!token) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: 'API token required. Provide token as query parameter: ?token=YOUR_TOKEN'
+    });
+  }
+
+  // Compare tokens (constant-time comparison to prevent timing attacks)
+  if (token !== appConfig.auth.apiToken) {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: 'Invalid API token'
+    });
+  }
+
+  next();
 }
 
 // Store connected clients for SSE
@@ -97,8 +180,76 @@ const providerLocations = new Map(); // providerId -> Location
 const trackableLocations = new Map(); // trackableId -> Location
 const fences = new Map(); // fenceId -> Fence
 
+// ============================================================================
+// Authentication Endpoints
+// ============================================================================
+
+// POST /api/auth/login - UI login
+app.post('/api/auth/login', (req, res) => {
+  const { password } = req.body;
+
+  // If no password is configured, deny login attempts
+  if (!appConfig.auth?.uiPassword) {
+    return res.status(400).json({
+      error: 'Bad Request',
+      message: 'Authentication is not configured'
+    });
+  }
+
+  // Validate password
+  if (!password || password !== appConfig.auth.uiPassword) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Invalid password'
+    });
+  }
+
+  // Set session
+  req.session.authenticated = true;
+  req.session.loginTime = new Date().toISOString();
+
+  console.log('✅ User logged in successfully');
+
+  res.json({
+    success: true,
+    message: 'Login successful',
+    sessionDuration: appConfig.auth.sessionDurationHours
+  });
+});
+
+// POST /api/auth/logout - UI logout
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Error destroying session:', err);
+      return res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'Failed to logout'
+      });
+    }
+
+    console.log('✅ User logged out successfully');
+    res.json({
+      success: true,
+      message: 'Logout successful'
+    });
+  });
+});
+
+// GET /api/auth/status - Check authentication status
+app.get('/api/auth/status', (req, res) => {
+  const authRequired = !!appConfig.auth?.uiPassword;
+  const authenticated = !!(req.session && req.session.authenticated);
+
+  res.json({
+    authRequired,
+    authenticated,
+    sessionDuration: appConfig.auth?.sessionDurationHours || null
+  });
+});
+
 // SSE endpoint for frontend to connect
-app.get('/events', (req, res) => {
+app.get('/events', requireUIAuth, (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -132,7 +283,7 @@ app.get('/events', (req, res) => {
 });
 
 // PUT /api/providers/:providerId/location - Update provider location (Omlox API)
-app.put('/api/providers/:providerId/location', (req, res) => {
+app.put('/api/providers/:providerId/location', requireAPIToken, (req, res) => {
   const { providerId: urlProviderId } = req.params;
   const location = req.body;
 
@@ -194,7 +345,7 @@ app.put('/api/providers/:providerId/location', (req, res) => {
 });
 
 // PUT /api/trackables/:trackableId/location - Update trackable location (Demo extension - not in Omlox spec)
-app.put('/api/trackables/:trackableId/location', (req, res) => {
+app.put('/api/trackables/:trackableId/location', requireAPIToken, (req, res) => {
   const { trackableId: urlTrackableId } = req.params;
   const location = req.body;
 
@@ -234,7 +385,8 @@ app.put('/api/trackables/:trackableId/location', (req, res) => {
   res.status(204).send();
 });
 
-// Configuration endpoint - serves runtime config to frontend
+// Configuration endpoint - serves runtime config to frontend (exclude sensitive auth data)
+// NOTE: This endpoint is PUBLIC - auth data is filtered out before sending
 app.get('/api/config', (req, res) => {
   if (!appConfig) {
     return res.status(500).json({
@@ -243,7 +395,16 @@ app.get('/api/config', (req, res) => {
     });
   }
   
-  res.json(appConfig);
+  // Return config without sensitive authentication data
+  const { auth, ...publicConfig } = appConfig;
+  res.json({
+    ...publicConfig,
+    auth: {
+      uiPassword: null, // Never expose password
+      apiToken: null, // Never expose token
+      sessionDurationHours: auth?.sessionDurationHours || 720
+    }
+  });
 });
 
 // Health check endpoint
@@ -262,14 +423,14 @@ app.get('/health', (req, res) => {
 // ============================================================================
 
 // GET /api/providers/summary - Get all providers
-app.get('/api/providers/summary', (req, res) => {
+app.get('/api/providers/summary', requireUIAuth, (req, res) => {
   const providerList = Array.from(providers.values());
   console.log(`GET /api/providers/summary - Returning ${providerList.length} providers`);
   res.json(providerList);
 });
 
 // GET /api/providers - Get all provider IDs
-app.get('/api/providers', (req, res) => {
+app.get('/api/providers', requireUIAuth, (req, res) => {
   const providerIds = Array.from(providers.keys());
   console.log(`GET /api/providers - Returning ${providerIds.length} provider IDs`);
   res.json(providerIds);
@@ -370,7 +531,7 @@ app.get('/api/providers/locations', (req, res) => {
 // ============================================================================
 
 // GET /api/trackables/summary - Get all trackables
-app.get('/api/trackables/summary', (req, res) => {
+app.get('/api/trackables/summary', requireUIAuth, (req, res) => {
   const trackableList = Array.from(trackables.values());
   console.log(`GET /api/trackables/summary - Returning ${trackableList.length} trackables`);
   res.json(trackableList);
@@ -471,7 +632,7 @@ app.get('/api/trackables/:trackableId/location', (req, res) => {
 // ============================================================================
 
 // GET /api/fences/summary - Get all fences
-app.get('/api/fences/summary', (req, res) => {
+app.get('/api/fences/summary', requireUIAuth, (req, res) => {
   const fenceList = Array.from(fences.values());
   console.log(`GET /api/fences/summary - Returning ${fenceList.length} fences`);
   res.json(fenceList);

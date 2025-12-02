@@ -36,6 +36,15 @@ export interface InitialDataConfig {
 }
 
 /**
+ * Authentication Configuration
+ */
+export interface AuthConfig {
+  uiPassword: string | null;       // Password for UI access (null = no auth)
+  apiToken: string | null;          // Token for API access (null = no auth)
+  sessionDurationHours: number;     // Session duration in hours
+}
+
+/**
  * Complete Application Configuration
  * This is loaded at runtime from config file or environment
  */
@@ -44,7 +53,12 @@ export interface AppConfig {
   zone: ZoneGeoreference;
   fences: Fence[];
   initialData: InitialDataConfig;
+  auth: AuthConfig;
 }
+
+
+
+
 
 
 
