@@ -153,14 +153,17 @@ function requireUIAuth(req, res, next) {
 
 /**
  * Middleware to check API token (sent as query parameter)
+ * Currently disabled - API endpoints are open
+ * Token can be re-enabled later by uncommenting the check
  */
 function requireAPIToken(req, res, next) {
-  // If no API token is configured, skip authentication
+  // API token check is disabled for simplicity
+  // To re-enable, uncomment the following:
+  /*
   if (!appConfig.auth?.apiToken) {
     return next();
   }
 
-  // Check query parameter 'token'
   const token = req.query.token;
 
   if (!token) {
@@ -170,13 +173,13 @@ function requireAPIToken(req, res, next) {
     });
   }
 
-  // Compare tokens (constant-time comparison to prevent timing attacks)
   if (token !== appConfig.auth.apiToken) {
     return res.status(403).json({
       error: 'Forbidden',
       message: 'Invalid API token'
     });
   }
+  */
 
   next();
 }
@@ -257,6 +260,34 @@ app.get('/api/auth/status', (req, res) => {
     authenticated,
     sessionDuration: appConfig.auth?.sessionDurationHours || null
   });
+});
+
+// Simple test endpoint to verify SSE-style streaming works
+app.get('/events-test', (req, res) => {
+  console.log('📋 /events-test called - testing SSE streaming');
+  
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+  
+  // Send immediate response
+  res.write('data: {"test": "immediate"}\n\n');
+  
+  // Send 2KB padding
+  res.write(':' + ' '.repeat(2048) + '\n\n');
+  
+  // Send another message after 1 second
+  setTimeout(() => {
+    res.write('data: {"test": "delayed-1s"}\n\n');
+  }, 1000);
+  
+  // Close after 3 seconds
+  setTimeout(() => {
+    res.write('data: {"test": "closing"}\n\n');
+    res.end();
+  }, 3000);
 });
 
 // SSE endpoint for frontend to connect
