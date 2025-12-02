@@ -23,7 +23,8 @@ class SSEClient {
     console.log(`🔌 Connecting to SSE server: ${url}`);
 
     try {
-      this.eventSource = new EventSource(url);
+      // withCredentials: true is required to send session cookies for authentication
+      this.eventSource = new EventSource(url, { withCredentials: true });
 
       this.eventSource.onopen = () => {
         console.log('✅ SSE connection opened successfully');

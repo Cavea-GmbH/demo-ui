@@ -119,16 +119,21 @@ jobs:
           ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          # Extract version from package.json
+          APP_VERSION=$(cat package.json | jq -r '.version')
+          
           # Determine semantic tag based on branch
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             SEMANTIC_TAG="latest"
             ENV_TAG="prod"
+            VERSION_TAG="v${APP_VERSION}"
+            echo "🏷️  Building image with tags: $IMAGE_TAG, $SEMANTIC_TAG, $ENV_TAG, $VERSION_TAG"
           else
             SEMANTIC_TAG="dev"
             ENV_TAG="dev"
+            VERSION_TAG=""
+            echo "🏷️  Building image with tags: $IMAGE_TAG, $SEMANTIC_TAG, $ENV_TAG"
           fi
-          
-          echo "🏷️  Building image with tags: $IMAGE_TAG, $SEMANTIC_TAG, $ENV_TAG"
           
           # Build with environment-specific config and version info baked in
           docker build \
@@ -140,10 +145,21 @@ jobs:
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$SEMANTIC_TAG
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TAG
           
+          # Add version tag for production (main branch)
+          if [ -n "$VERSION_TAG" ]; then
+            docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
+          fi
+          
           # Push all tags
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$SEMANTIC_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$ENV_TAG
+          
+          # Push version tag for production
+          if [ -n "$VERSION_TAG" ]; then
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION_TAG
+            echo "✅ Version tag pushed: $VERSION_TAG"
+          fi
           
           echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
           echo "✅ Images pushed to ECR"
@@ -159,11 +175,38 @@ jobs:
         if: github.ref == 'refs/heads/dev'
         run: |
           echo "🚀 Deploying to App Runner (Development)..."
+          
+          # Wait for App Runner to be ready (max 5 minutes)
+          MAX_ATTEMPTS=10
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            STATUS=$(aws apprunner describe-service \
+              --service-arn ${{ vars.APP_RUNNER_SERVICE_ARN }} \
+              --query 'Service.Status' --output text \
+              --region eu-central-1)
+            
+            echo "📊 App Runner status: $STATUS"
+            
+            if [ "$STATUS" = "RUNNING" ]; then
+              break
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+              echo "⏳ Waiting 30s for App Runner to be ready... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+              sleep 30
+            fi
+          done
+          
+          if [ "$STATUS" != "RUNNING" ]; then
+            echo "⚠️ App Runner not ready after waiting, attempting update anyway..."
+          fi
+          
           aws apprunner update-service \
             --service-arn ${{ vars.APP_RUNNER_SERVICE_ARN }} \
             --source-configuration "ImageRepository={ImageIdentifier=${{ env.IMAGE_URI }},ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
             --region eu-central-1
-      
+
       # Production deployment disabled - Docker image is built and pushed with 'latest' tag
       # To deploy production: Use the 'latest' tagged image from ECR manually
       # - name: Deploy to AWS App Runner (Production)
