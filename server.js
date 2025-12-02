@@ -386,7 +386,8 @@ app.put('/api/trackables/:trackableId/location', requireAPIToken, (req, res) => 
 });
 
 // Configuration endpoint - serves runtime config to frontend (exclude sensitive auth data)
-app.get('/api/config', requireUIAuth, (req, res) => {
+// NOTE: This endpoint is PUBLIC - auth data is filtered out before sending
+app.get('/api/config', (req, res) => {
   if (!appConfig) {
     return res.status(500).json({
       error: 'Configuration not loaded',
