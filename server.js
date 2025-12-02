@@ -253,7 +253,8 @@ app.get('/events', requireUIAuth, (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Note: CORS headers are handled by the cors middleware
+  // Don't set Access-Control-Allow-Origin manually - it breaks withCredentials
 
   clients.add(res);
   console.log(`✅ SSE client connected. Total clients: ${clients.size}`);
