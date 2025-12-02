@@ -107,8 +107,15 @@
         "accuracy": 0.5
       }
     }
+  },
+  "auth": {
+    "uiPassword": null,
+    "apiToken": null,
+    "sessionDurationHours": 720
   }
 }
+
+
 
 
 

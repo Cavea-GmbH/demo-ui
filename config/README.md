@@ -178,6 +178,13 @@ Demo data to load on application startup.
 - **`trackables`** (array): Array of trackable objects
 - **`locations`** (object): Map of initial locations keyed by provider/trackable ID
 
+#### `auth` (required)
+Authentication configuration for UI and API access.
+
+- **`uiPassword`** (string | null): Password for UI access. Set to `null` to disable UI authentication.
+- **`apiToken`** (string | null): Token for API access. Set to `null` to disable API authentication.
+- **`sessionDurationHours`** (number): Session duration in hours (default: 720 = 30 days)
+
 Example:
 ```json
 {
@@ -309,8 +316,24 @@ Required fields:
 - Check that numeric values are numbers, not strings
 - Verify GeoJSON structure for fences (closed polygon rings)
 
+## Authentication
+
+The application supports optional authentication for both UI and API access. See [AUTHENTICATION.md](../docs/AUTHENTICATION.md) for complete details.
+
+**Quick example:**
+```json
+{
+  "auth": {
+    "uiPassword": "your-secure-password",
+    "apiToken": "your-secure-api-token-min-32-chars",
+    "sessionDurationHours": 720
+  }
+}
+```
+
 ## See Also
 
+- [AUTHENTICATION.md](../docs/AUTHENTICATION.md) - Authentication setup and security
 - [DEPLOYMENT.md](../docs/DEPLOYMENT.md) - Deployment guide for different platforms
 - [AWS_SETUP.md](../docs/AWS_SETUP.md) - AWS-specific deployment guide
 - [CUSTOMER_DEPLOYMENT.md](../docs/CUSTOMER_DEPLOYMENT.md) - Customer deployment guide

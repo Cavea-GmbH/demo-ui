@@ -107,6 +107,11 @@
         "accuracy": 0.5
       }
     }
+  },
+  "auth": {
+    "uiPassword": "your-secure-password-here",
+    "apiToken": "your-secure-api-token-here",
+    "sessionDurationHours": 720
   }
 }
 
