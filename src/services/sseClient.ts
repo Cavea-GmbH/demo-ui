@@ -44,18 +44,22 @@ class SSEClient {
 
       this.eventSource.onerror = (error) => {
         const state = this.eventSource?.readyState;
-        console.error('❌ SSE connection error. State:', state, error);
+        console.error('❌ SSE connection error. State:', state === 0 ? 'CONNECTING' : state === 1 ? 'OPEN' : 'CLOSED', error);
         
-        if (state === EventSource.CLOSED) {
+        // Attempt to reconnect on any error (CLOSED state or connection failure)
+        // EventSource may stay in CONNECTING state on some failures
+        if (state === EventSource.CLOSED || state === EventSource.CONNECTING) {
           this.eventSource?.close();
+          this.eventSource = null;
           
           // Attempt to reconnect
           if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
-            console.log(`🔄 Reconnecting... (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+            const delay = this.reconnectDelay * Math.min(this.reconnectAttempts, 3); // Exponential backoff, max 3x
+            console.log(`🔄 Reconnecting in ${delay/1000}s... (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
             setTimeout(() => {
               this.connect();
-            }, this.reconnectDelay);
+            }, delay);
           } else {
             console.error('❌ Max reconnection attempts reached. Please check:');
             console.error('   1. Is the proxy server running? (npm run dev:proxy)');

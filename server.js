@@ -20,6 +20,10 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Trust proxy - required when running behind nginx/App Runner/load balancers
+// This allows Express to correctly handle secure cookies and client IP
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: true, // Allow requests from any origin (adjust for production)
   credentials: true, // Allow cookies to be sent
@@ -103,16 +107,23 @@ try {
 // Configure session with secure settings
 const sessionMaxAge = (appConfig.auth?.sessionDurationHours || 720) * 60 * 60 * 1000; // Convert hours to milliseconds
 
+// Determine if we're in production (behind HTTPS proxy)
+const isProduction = process.env.NODE_ENV === 'production' || process.env.PORT === '3001';
+
 app.use(session({
   secret: appConfig.auth?.uiPassword || 'default-secret-change-me',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to true if using HTTPS
+    // In production behind proxy, secure should be true for HTTPS
+    // But since we set 'trust proxy', Express will handle this automatically
+    secure: 'auto', // Auto-detect based on request protocol
     httpOnly: true,
     maxAge: sessionMaxAge,
     sameSite: 'lax'
-  }
+  },
+  // Use proxy for secure cookie detection
+  proxy: true
 }));
 
 // ============================================================================
