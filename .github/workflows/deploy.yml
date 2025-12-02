@@ -50,8 +50,19 @@ jobs:
           GCP='${{ vars.GROUND_CONTROL_POINTS }}'
           
           # Authentication settings (optional)
-          UI_PASSWORD="${{ secrets.UI_PASSWORD || 'null' }}"
-          API_TOKEN="${{ secrets.API_TOKEN || 'null' }}"
+          # Handle proper JSON formatting for strings vs null
+          if [ -n "${{ secrets.UI_PASSWORD }}" ]; then
+            UI_PASSWORD="\"${{ secrets.UI_PASSWORD }}\""
+          else
+            UI_PASSWORD="null"
+          fi
+          
+          if [ -n "${{ secrets.API_TOKEN }}" ]; then
+            API_TOKEN="\"${{ secrets.API_TOKEN }}\""
+          else
+            API_TOKEN="null"
+          fi
+          
           SESSION_HOURS="${{ vars.SESSION_DURATION_HOURS || '720' }}"
           
           echo "🔧 Building for $ENV environment"
