@@ -163,7 +163,7 @@ jobs:
             --service-arn ${{ vars.APP_RUNNER_SERVICE_ARN }} \
             --source-configuration "ImageRepository={ImageIdentifier=${{ env.IMAGE_URI }},ImageRepositoryType=ECR,ImageConfiguration={Port=80}}" \
             --region eu-central-1
-      
+
       # Production deployment disabled - Docker image is built and pushed with 'latest' tag
       # To deploy production: Use the 'latest' tagged image from ECR manually
       # - name: Deploy to AWS App Runner (Production)

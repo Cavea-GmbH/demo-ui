@@ -71,7 +71,7 @@ export function useLocationReceiver(): UseLocationReceiverReturn {
         const trackableLocs = new Map<string, Location>();
         
         Object.entries(config.initialData.locations).forEach(([id, location]) => {
-          if (id.startsWith('provider-')) {
+      if (id.startsWith('provider-')) {
             providerLocs.set(id, location);
           } else if (id.startsWith('trackable-')) {
             trackableLocs.set(id, location);
