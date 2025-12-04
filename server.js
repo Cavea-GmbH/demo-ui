@@ -521,14 +521,14 @@ app.get('/health', (req, res) => {
 // ============================================================================
 
 // GET /api/providers/summary - Get all providers
-app.get('/api/providers/summary', requireUIAuth, (req, res) => {
+app.get('/api/providers/summary', (req, res) => {
   const providerList = Array.from(providers.values());
   console.log(`GET /api/providers/summary - Returning ${providerList.length} providers`);
   res.json(providerList);
 });
 
 // GET /api/providers - Get all provider IDs
-app.get('/api/providers', requireUIAuth, (req, res) => {
+app.get('/api/providers', (req, res) => {
   const providerIds = Array.from(providers.keys());
   console.log(`GET /api/providers - Returning ${providerIds.length} provider IDs`);
   res.json(providerIds);
@@ -629,7 +629,7 @@ app.get('/api/providers/locations', (req, res) => {
 // ============================================================================
 
 // GET /api/trackables/summary - Get all trackables
-app.get('/api/trackables/summary', requireUIAuth, (req, res) => {
+app.get('/api/trackables/summary', (req, res) => {
   const trackableList = Array.from(trackables.values());
   console.log(`GET /api/trackables/summary - Returning ${trackableList.length} trackables`);
   res.json(trackableList);
@@ -730,7 +730,7 @@ app.get('/api/trackables/:trackableId/location', (req, res) => {
 // ============================================================================
 
 // GET /api/fences/summary - Get all fences
-app.get('/api/fences/summary', requireUIAuth, (req, res) => {
+app.get('/api/fences/summary', (req, res) => {
   const fenceList = Array.from(fences.values());
   console.log(`GET /api/fences/summary - Returning ${fenceList.length} fences`);
   res.json(fenceList);
