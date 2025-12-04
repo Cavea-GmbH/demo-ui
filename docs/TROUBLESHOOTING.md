@@ -1,129 +1,123 @@
-# Troubleshooting Guide
+# Troubleshooting
 
-## Issue: No Location Providers Appearing on Floor Plan
+## Quick Checks
 
-### Problem: `clientsConnected: 0` in Postman Response
+```bash
+# Container running?
+docker ps
 
-This means the frontend app is **not connected** to the proxy server.
+# Health check
+curl http://localhost/health
 
-### Solution Steps:
+# View logs
+docker logs demo-ui
 
-1. **Check if Proxy Server is Running**
-   ```bash
-   # In terminal 1
-   npm run dev:proxy
-   ```
-   You should see:
-   ```
-   📍 Location Proxy Server running on http://localhost:3001
-   ```
-
-2. **Check if Frontend App is Running**
-   ```bash
-   # In terminal 2
-   npm run dev
-   ```
-   The app should open at `http://localhost:5173` (or similar)
-
-3. **Check Browser Console**
-   - Open browser DevTools (F12)
-   - Go to Console tab
-   - Look for these messages:
-     - `🔌 Connecting to SSE server: http://localhost:3001/events`
-     - `✅ SSE connection opened successfully`
-     - `✅ Connected to proxy server`
-
-4. **If You See Connection Errors:**
-   - **CORS Error**: Make sure proxy server has CORS enabled (it should)
-   - **Connection Refused**: Proxy server not running
-   - **404 Not Found**: Wrong URL - proxy server should be on `http://localhost:3001/events`
-
-5. **Test Connection Manually**
-   - Open browser and go to: `http://localhost:3001/health`
-   - Should return: `{"status":"ok","clientsConnected":1}` (if frontend is connected)
-
-### Quick Test:
-
-1. Start proxy server: `npm run dev:proxy`
-2. Start frontend: `npm run dev`
-3. Open browser console - you should see connection messages
-4. Send Postman request - `clientsConnected` should be `1` or more
-5. Check browser console for: `📍 Received provider location: 0080E126`
-
----
-
-## Issue: Location Updates Received But Not Displayed
-
-### Check:
-
-1. **Coordinates are valid:**
-   - Coordinates should be within your configured floor dimensions
-   - Example: For a 50m x 30m floor, X: 0-50 meters, Y: 0-30 meters
-   - Check your config at `/api/config` to see your floor dimensions
-
-2. **Check Browser Console:**
-   - Should see: `📍 Updating provider location: 0080E126`
-   - Should see: `➕ Auto-creating provider: 0080E126`
-
-3. **Check Provider Count:**
-   - Look at top bar - should show "Providers: 1" after sending request
-   - If still 0, location update didn't reach the app
-
----
-
-## Pre-Registered Providers/Trackables
-
-**There are NO pre-registered providers or trackables.**
-
-They are **auto-created** when you send the first location update for a provider/trackable ID.
-
-### How It Works:
-
-1. Send POST request with `provider_id: "0080E126"`
-2. App receives location update
-3. App automatically creates provider entry if it doesn't exist
-4. Provider appears on floor plan at the specified coordinates
-
-### Example Flow:
-
-```
-Postman Request → Proxy Server → SSE → Frontend App
-                                    ↓
-                            Auto-create Provider
-                                    ↓
-                            Update Floor Plan
+# Check config
+curl http://localhost/api/config
 ```
 
 ---
 
-## Common Issues:
+## Common Issues
 
-### 1. Frontend Not Connected
-- **Symptom**: `clientsConnected: 0`
-- **Fix**: Make sure frontend app is running and check browser console
+### SSE / Real-time Updates Not Working
 
-### 2. Wrong Port
-- **Symptom**: Connection errors
-- **Fix**: Check proxy server is on port 3001
+**Symptoms:** "Event Server: Disconnected", no live updates
 
-### 3. CORS Issues
-- **Symptom**: Browser console shows CORS error
-- **Fix**: Proxy server should handle CORS, but check server.js has `app.use(cors())`
+**Check browser console:**
+- Look for `SSE connection opened` message
+- Check for connection errors
 
-### 4. Coordinates Out of Bounds
-- **Symptom**: Provider created but not visible
-- **Fix**: Check your floor dimensions via `/api/config` and ensure coordinates are within bounds
+**Fixes:**
+1. Verify proxy server is running (`npm run dev:proxy` for dev)
+2. Check browser console for CORS errors
+3. Try refreshing the page
+4. Check firewall isn't blocking port 3001
+
+### Location Updates Not Appearing
+
+**Check:**
+```bash
+# Verify health shows connected clients
+curl http://localhost/health
+# Should show: "clientsConnected": 1 or more
+```
+
+**Fixes:**
+1. Coordinates must be within floor bounds (check `/api/config` for dimensions)
+2. Make sure frontend is connected (check browser console)
+3. Verify JSON format in request
+
+### Container Won't Start
+
+```bash
+# Check logs
+docker logs demo-ui
+
+# Common issues:
+# - Port 80 already in use: use -p 8080:80 instead
+# - Invalid config JSON: validate with jq
+```
+
+### Config Not Loading
+
+```bash
+# Check if config is mounted
+docker exec demo-ui ls -la /config
+
+# Validate JSON
+cat config.json | jq .
+```
+
+**If using volume mount:**
+- Path must be absolute or use `$(pwd)/`
+- File must exist before container starts
+
+### UI Shows Default Values
+
+- Volume mount not working - check docker run command
+- Config file has JSON errors - validate with `jq`
+- Restart container after config changes
+
+### Authentication Issues
+
+**"Invalid password":**
+- Check `auth.uiPassword` in config
+- Passwords are case-sensitive
+- Restart container after config changes
+
+**Login page doesn't appear:**
+- `uiPassword` is `null` - auth is disabled (intended behavior)
+
+### ECR Login Fails
+
+```bash
+# Re-authenticate (tokens expire after 12 hours)
+aws ecr get-login-password --region eu-central-1 | \
+  docker login --username AWS --password-stdin ACCOUNT.dkr.ecr.eu-central-1.amazonaws.com
+```
 
 ---
 
-## Debug Checklist:
+## Debug Checklist
 
+Development:
 - [ ] Proxy server running (`npm run dev:proxy`)
-- [ ] Frontend app running (`npm run dev`)
+- [ ] Frontend running (`npm run dev`)
 - [ ] Browser console shows "SSE connection opened"
-- [ ] Postman response shows `clientsConnected: 1` (or more)
-- [ ] Browser console shows "Received provider location"
-- [ ] Browser console shows "Auto-creating provider"
-- [ ] Top bar shows provider count > 0
-- [ ] Coordinates are within your configured floor bounds (check `/api/config`)
+- [ ] `/health` shows `clientsConnected: 1`
 
+Docker:
+- [ ] Container running (`docker ps`)
+- [ ] Logs show no errors (`docker logs demo-ui`)
+- [ ] Port accessible (`curl http://localhost/health`)
+- [ ] Config loaded (`curl http://localhost/api/config`)
+
+---
+
+## Get Help
+
+1. Check container/browser logs first
+2. Validate configuration JSON
+3. Review this guide
+4. Contact development team

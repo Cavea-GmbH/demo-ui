@@ -1,547 +1,258 @@
 # Deployment Guide
 
-This guide explains how to deploy the demo-ui application in various environments. The application is packaged as a Docker image with runtime configuration, allowing the same image to be used across multiple instances with different settings.
+This guide shows how to pull and run the Docker image on any machine (EC2, local, on-premises).
 
-## Table of Contents
+## Prerequisites
 
-- [Overview](#overview)
-- [Configuration](#configuration)
-- [Local Development](#local-development)
-- [Standalone Docker](#standalone-docker)
-- [Docker Compose](#docker-compose)
-- [AWS ECS/Fargate](#aws-ecsfargate)
-- [AWS App Runner](#aws-app-runner)
-- [Kubernetes](#kubernetes)
-- [On-Premises](#on-premises)
+- Docker installed ([Get Docker](https://docs.docker.com/get-docker/))
+- AWS CLI configured (for ECR access) or Docker image file provided
 
-## Overview
+## Docker Image Repositories
 
-### Architecture
+| Environment | Repository | Use For |
+|-------------|------------|---------|
+| **Production** | `343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest` | Stable releases, customer deployments |
+| **Development** | `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev` | Testing, preview features |
 
-The application consists of:
-- **Frontend**: React SPA served by Nginx (port 80)
-- **Backend**: Node.js proxy server for SSE and API (port 3001)
-- **Supervisor**: Process manager running both services in the container
+---
 
-### Docker Image Repositories
+## Quick Start
 
-We maintain two separate ECR repositories:
-
-- **Production**: `343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest`
-  - For stable releases and customer deployments
-  - Built from `main` branch
-
-- **Development**: `116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev`
-  - For testing and preview features
-  - Built from `dev` branch
-
-### Configuration Approach
-
-- Configuration is loaded at **runtime** from JSON files
-- **Built-in default config** included in the Docker image
-- **Custom config** can be provided via volume mount
-- **Single Docker image** for all deployments
-
-## Configuration
-
-See [config/README.md](config/README.md) for detailed configuration documentation.
-
-### Quick Start
-
-1. Copy the example config:
-   ```bash
-   cp config/app-config.example.json config/app-config.json
-   ```
-
-2. Edit `config/app-config.json` with your values
-
-3. Use the config in your deployment (see platform-specific sections below)
-
-## Local Development
-
-### With Docker Compose
+### 1. Login to AWS ECR
 
 ```bash
-# Copy and customize config
-cp config/app-config.example.json config/app-config.json
-nano config/app-config.json
-
-# Run application
-docker-compose up
-```
-
-Access at: http://localhost:3000
-
-### Without Docker (Development Mode)
-
-```bash
-# Install dependencies
-npm install
-
-# Start backend server (loads config from file)
-npm run dev:proxy
-
-# In another terminal, start frontend
-npm run dev
-```
-
-Access at: http://localhost:3000 (frontend) and http://localhost:3001 (backend)
-
-## Standalone Docker
-
-### Using Built-in Default Config
-
-```bash
-# Build image
-docker build -t demo-ui:latest .
-
-# Run with default config
-docker run -p 80:80 demo-ui:latest
-```
-
-### Using Custom Config
-
-```bash
-# Run with volume-mounted config
-docker run -p 80:80 \
-  -v $(pwd)/config/app-config.json:/config/app-config.json:ro \
-  demo-ui:latest
-```
-
-### Multiple Instances
-
-Run multiple instances with different configs:
-
-```bash
-# Instance 1 - Customer A
-docker run -d --name demo-ui-customer-a \
-  -p 8001:80 \
-  -v $(pwd)/config/customer-a.json:/config/app-config.json:ro \
-  demo-ui:latest
-
-# Instance 2 - Customer B
-docker run -d --name demo-ui-customer-b \
-  -p 8002:80 \
-  -v $(pwd)/config/customer-b.json:/config/app-config.json:ro \
-  demo-ui:latest
-
-# Instance 3 - Demo (default config)
-docker run -d --name demo-ui-demo \
-  -p 8003:80 \
-  demo-ui:latest
-```
-
-## Docker Compose
-
-### Basic Setup
-
-```yaml
-version: '3.8'
-
-services:
-  demo-ui:
-    image: demo-ui:latest
-    ports:
-      - "3000:80"
-    volumes:
-      - ./config/app-config.json:/config/app-config.json:ro
-    restart: unless-stopped
-```
-
-### Multiple Instances
-
-```yaml
-version: '3.8'
-
-services:
-  demo-ui-instance-1:
-    image: demo-ui:latest
-    ports:
-      - "8001:80"
-    volumes:
-      - ./config/instance1.json:/config/app-config.json:ro
-    restart: unless-stopped
-
-  demo-ui-instance-2:
-    image: demo-ui:latest
-    ports:
-      - "8002:80"
-    volumes:
-      - ./config/instance2.json:/config/app-config.json:ro
-    restart: unless-stopped
-```
-
-## AWS ECS/Fargate
-
-### Prerequisites
-
-- AWS CLI configured
-- ECR repository created
-- ECS cluster created
-
-### Build and Push Image
-
-**Production:**
-```bash
-# Login to ECR (Production account)
+# Production account
 aws ecr get-login-password --region eu-central-1 | \
   docker login --username AWS --password-stdin 343218205164.dkr.ecr.eu-central-1.amazonaws.com
 
-# Build and tag image
-docker build -t demo-ui:latest .
-docker tag demo-ui:latest 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
-
-# Push to ECR
-docker push 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
-```
-
-**Development:**
-```bash
-# Login to ECR (Development account)
+# Development account
 aws ecr get-login-password --region eu-central-1 | \
   docker login --username AWS --password-stdin 116981770603.dkr.ecr.eu-central-1.amazonaws.com
-
-# Build and tag image
-docker build -t demo-ui:dev .
-docker tag demo-ui:dev 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev
-
-# Push to ECR
-docker push 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev
 ```
 
-### ECS Task Definition
-
-Create a task definition JSON:
-
-```json
-{
-  "family": "demo-ui",
-  "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
-  "cpu": "512",
-  "memory": "1024",
-  "containerDefinitions": [
-    {
-      "name": "demo-ui",
-      "image": "343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest",
-      "portMappings": [
-        {
-          "containerPort": 80,
-          "protocol": "tcp"
-        }
-      ],
-      "essential": true,
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/demo-ui",
-          "awslogs-region": "eu-central-1",
-          "awslogs-stream-prefix": "ecs"
-        }
-      }
-    }
-  ]
-}
-```
-
-### Option 1: Using Default Config
-
-No additional configuration needed - uses built-in default config.
-
-### Option 2: Using EFS for Config
-
-1. Create EFS file system
-2. Mount EFS to task
-3. Upload config to EFS
-
-Task definition with EFS:
-
-```json
-{
-  "volumes": [
-    {
-      "name": "config",
-      "efsVolumeConfiguration": {
-        "fileSystemId": "fs-xxxxxxxxx",
-        "rootDirectory": "/configs/instance1"
-      }
-    }
-  ],
-  "containerDefinitions": [
-    {
-      ...
-      "mountPoints": [
-        {
-          "sourceVolume": "config",
-          "containerPath": "/config",
-          "readOnly": true
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Create ECS Service
+### 2. Pull the Image
 
 ```bash
-aws ecs create-service \
-  --cluster demo-ui-cluster \
-  --service-name demo-ui-instance1 \
-  --task-definition demo-ui:1 \
-  --desired-count 1 \
-  --launch-type FARGATE \
-  --network-configuration "awsvpcConfiguration={subnets=[subnet-xxx],securityGroups=[sg-xxx],assignPublicIp=ENABLED}"
+# Production (stable)
+docker pull 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+
+# Development (testing)
+docker pull 116981770603.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:dev
 ```
 
-## AWS App Runner
+### 3. Run the Container
 
-App Runner can still be used but has limitations with volume mounts. Configuration must be embedded in the image.
+**With default configuration:**
+```bash
+docker run -d --name demo-ui -p 80:80 --restart unless-stopped \
+  343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+```
 
-See [docs/AWS_SETUP.md](AWS_SETUP.md) for App Runner-specific instructions.
+**With custom configuration:**
+```bash
+docker run -d --name demo-ui -p 80:80 --restart unless-stopped \
+  -v /path/to/your-config.json:/config/app-config.json:ro \
+  343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+```
 
-## Kubernetes
-
-### ConfigMap Approach
-
-1. Create ConfigMap from config file:
+### 4. Verify Deployment
 
 ```bash
-kubectl create configmap demo-ui-config \
-  --from-file=app-config.json=config/app-config.json
+# Check container is running
+docker ps
+
+# Check health
+curl http://localhost/health
+
+# View logs
+docker logs demo-ui
 ```
 
-2. Create Deployment:
+Open http://localhost (or your server's IP) in a browser.
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: demo-ui
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: demo-ui
-  template:
-    metadata:
-      labels:
-        app: demo-ui
-    spec:
-      containers:
-      - name: demo-ui
-        image: demo-ui:latest
-        ports:
-        - containerPort: 80
-        volumeMounts:
-        - name: config
-          mountPath: /config
-          readOnly: true
-      volumes:
-      - name: config
-        configMap:
-          name: demo-ui-config
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: demo-ui
-spec:
-  selector:
-    app: demo-ui
-  ports:
-  - port: 80
-    targetPort: 80
-  type: LoadBalancer
+
+## Custom Configuration
+
+Create a config file based on `config/app-config.example.json`:
+
+```json
+{
+  "floor": {
+    "width": 100,
+    "length": 60
+  },
+  "zone": {
+    "id": "warehouse-1",
+    "position": [7.815694, 48.130216],
+    "groundControlPoints": [
+      {"wgs84": [7.815694, 48.130216], "local": [0, 0]},
+      {"wgs84": [7.816551, 48.130216], "local": [100, 0]},
+      {"wgs84": [7.815694, 48.13031], "local": [0, 60]},
+      {"wgs84": [7.816551, 48.13031], "local": [100, 60]}
+    ]
+  },
+  "fences": [],
+  "auth": {
+    "uiPassword": "YourSecurePassword123",
+    "sessionDurationHours": 720
+  },
+  "initialData": {
+    "loadInitialData": false
+  }
+}
 ```
 
-3. Deploy:
-
+Mount as volume when running:
 ```bash
-kubectl apply -f deployment.yaml
+docker run -p 80:80 -v ./my-config.json:/config/app-config.json:ro demo-ui:latest
 ```
 
-### Multiple Instances
+---
 
-Create separate ConfigMaps and Deployments for each instance:
+## EC2 Deployment
 
-```bash
-# Instance 1
-kubectl create configmap demo-ui-config-instance1 \
-  --from-file=app-config.json=config/instance1.json
+### Step-by-Step
 
-# Instance 2
-kubectl create configmap demo-ui-config-instance2 \
-  --from-file=app-config.json=config/instance2.json
-```
+1. **Launch EC2 Instance**
+   - Amazon Linux 2023 or Ubuntu 22.04
+   - t3.micro is sufficient
+   - Security group: Allow inbound HTTP (80) and SSH (22)
 
-## On-Premises
+2. **Connect to EC2**
+   ```bash
+   ssh -i your-key.pem ec2-user@your-ec2-ip
+   ```
 
-### Systemd Service
+3. **Install Docker**
+   ```bash
+   # Amazon Linux
+   sudo yum install -y docker
+   sudo systemctl enable docker
+   sudo systemctl start docker
+   sudo usermod -aG docker ec2-user
+   
+   # Log out and back in for group change
+   exit
+   ssh -i your-key.pem ec2-user@your-ec2-ip
+   ```
 
-1. Create systemd service file `/etc/systemd/system/demo-ui.service`:
+4. **Install AWS CLI** (if not pre-installed)
+   ```bash
+   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+   unzip awscliv2.zip
+   sudo ./aws/install
+   ```
 
-```ini
-[Unit]
-Description=Demo UI Application
-After=docker.service
-Requires=docker.service
+5. **Configure AWS Credentials**
+   ```bash
+   aws configure
+   # Enter your Access Key ID, Secret Access Key, Region (eu-central-1)
+   ```
 
-[Service]
-TimeoutStartSec=0
-Restart=always
-ExecStartPre=-/usr/bin/docker stop demo-ui
-ExecStartPre=-/usr/bin/docker rm demo-ui
-ExecStart=/usr/bin/docker run \
-  --name demo-ui \
-  -p 80:80 \
-  -v /opt/demo-ui/config/app-config.json:/config/app-config.json:ro \
-  demo-ui:latest
-ExecStop=/usr/bin/docker stop demo-ui
+6. **Pull and Run**
+   ```bash
+   # Login to ECR
+   aws ecr get-login-password --region eu-central-1 | \
+     docker login --username AWS --password-stdin 343218205164.dkr.ecr.eu-central-1.amazonaws.com
+   
+   # Pull image
+   docker pull 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+   
+   # Run container
+   docker run -d --name demo-ui -p 80:80 --restart unless-stopped \
+     343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+   ```
 
-[Install]
-WantedBy=multi-user.target
-```
+7. **Access the Application**
+   - Open `http://your-ec2-public-ip` in browser
 
-2. Place config file:
+---
 
-```bash
-mkdir -p /opt/demo-ui/config
-cp config/app-config.json /opt/demo-ui/config/
-```
+## Docker Compose
 
-3. Enable and start service:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable demo-ui
-sudo systemctl start demo-ui
-```
-
-### Docker Compose (Production)
+For easier management, use Docker Compose:
 
 ```yaml
+# docker-compose.yml
 version: '3.8'
 
 services:
   demo-ui:
-    image: demo-ui:latest
+    image: 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
     container_name: demo-ui
     ports:
       - "80:80"
     volumes:
-      - /opt/demo-ui/config/app-config.json:/config/app-config.json:ro
-    restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - ./config.json:/config/app-config.json:ro
+    restart: unless-stopped
 ```
-
-## Monitoring and Logging
-
-### Health Check
-
-The application exposes a health check endpoint:
 
 ```bash
-curl http://localhost:80/health
-```
-
-Response:
-```json
-{
-  "status": "ok",
-  "configLoaded": true,
-  "clientsConnected": 2,
-  "providersCount": 3,
-  "trackablesCount": 1
-}
-```
-
-### View Logs
-
-**Docker:**
-```bash
-docker logs <container-name>
-```
-
-**Docker Compose:**
-```bash
+docker-compose up -d
 docker-compose logs -f
 ```
 
-**Kubernetes:**
-```bash
-kubectl logs deployment/demo-ui
-```
+---
 
-### Configuration Verification
-
-Check loaded configuration:
+## Update to New Version
 
 ```bash
-curl http://localhost:80/api/config
+# Pull latest image
+docker pull 343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
+
+# Stop and remove old container
+docker stop demo-ui
+docker rm demo-ui
+
+# Start with new image
+docker run -d --name demo-ui -p 80:80 --restart unless-stopped \
+  -v ./config.json:/config/app-config.json:ro \
+  343218205164.dkr.ecr.eu-central-1.amazonaws.com/frontend/cavea-demo-ui:latest
 ```
+
+---
+
+## Without AWS Access (Image File)
+
+If you received a Docker image file:
+
+```bash
+# Load the image
+docker load -i demo-ui-latest.tar
+
+# Verify
+docker images | grep demo-ui
+
+# Run
+docker run -d --name demo-ui -p 80:80 --restart unless-stopped demo-ui:latest
+```
+
+---
 
 ## Troubleshooting
 
-### Container won't start
-- Check logs: `docker logs <container>`
-- Verify config file syntax: `cat config/app-config.json | jq`
-- Ensure config file is valid JSON
-
-### Config not loading
-- Verify volume mount: `docker exec <container> ls -la /config`
-- Check file permissions: config file must be readable
-- View loaded config: `docker exec <container> cat /app/config/default-config.json`
-
-### Port already in use
-- Check what's using the port: `lsof -i :80` (Linux/Mac) or `netstat -ano | findstr :80` (Windows)
-- Use a different port mapping: `-p 8080:80`
-
-### Application shows default config
-- Volume mount may not be working - check docker-compose.yml or docker run command
-- Config file may have validation errors - check console output
-
-## Security Considerations
-
-1. **Config Files**: Ensure config files contain no sensitive data (API keys, passwords)
-2. **Volume Mounts**: Use read-only mounts (`:ro`)
-3. **Network**: Run behind reverse proxy (Nginx, Traefik) with HTTPS
-4. **Updates**: Regularly update the Docker image for security patches
-
-## Performance Tuning
-
-### Resource Limits
-
-```yaml
-services:
-  demo-ui:
-    ...
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-```
-
-### Scaling
-
-Run multiple replicas behind a load balancer:
-
+**Container won't start:**
 ```bash
-docker-compose up --scale demo-ui=3
+docker logs demo-ui
 ```
 
-## Next Steps
+**Port already in use:**
+```bash
+docker run -p 8080:80 ...  # Use different port
+```
 
-- Review [config/README.md](../config/README.md) for configuration details
-- Check [docs/AWS_SETUP.md](AWS_SETUP.md) for AWS-specific guidance
-- See [docs/CUSTOMER_DEPLOYMENT.md](CUSTOMER_DEPLOYMENT.md) for customer-specific deployments
-- Set up monitoring and alerting for production deployments
+**Config not loading:**
+```bash
+# Verify mount
+docker exec demo-ui ls -la /config
 
+# Check config via API
+curl http://localhost/api/config
+```
+
+**ECR login expired:**
+```bash
+# Re-authenticate (tokens expire after 12 hours)
+aws ecr get-login-password --region eu-central-1 | docker login ...
+```

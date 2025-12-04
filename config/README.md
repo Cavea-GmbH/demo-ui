@@ -178,11 +178,10 @@ Demo data to load on application startup.
 - **`trackables`** (array): Array of trackable objects
 - **`locations`** (object): Map of initial locations keyed by provider/trackable ID
 
-#### `auth` (required)
-Authentication configuration for UI and API access.
+#### `auth` (optional)
+Authentication configuration for UI access.
 
-- **`uiPassword`** (string | null): Password for UI access. Set to `null` to disable UI authentication.
-- **`apiToken`** (string | null): Token for API access. Set to `null` to disable API authentication.
+- **`uiPassword`** (string | null): Password for UI access. Set to `null` to disable authentication.
 - **`sessionDurationHours`** (number): Session duration in hours (default: 720 = 30 days)
 
 Example:
@@ -318,25 +317,25 @@ Required fields:
 
 ## Authentication
 
-The application supports optional authentication for both UI and API access. See [AUTHENTICATION.md](../docs/AUTHENTICATION.md) for complete details.
+The application supports optional password protection for the UI.
 
-**Quick example:**
 ```json
 {
   "auth": {
-    "uiPassword": "your-secure-password",
-    "apiToken": "your-secure-api-token-min-32-chars",
+    "uiPassword": "YourSecurePassword123",
     "sessionDurationHours": 720
   }
 }
 ```
 
+- Set `uiPassword` to `null` to disable authentication (public access)
+- `sessionDurationHours`: How long the session stays active (default: 720 = 30 days)
+
 ## See Also
 
-- [AUTHENTICATION.md](../docs/AUTHENTICATION.md) - Authentication setup and security
-- [DEPLOYMENT.md](../docs/DEPLOYMENT.md) - Deployment guide for different platforms
-- [AWS_SETUP.md](../docs/AWS_SETUP.md) - AWS-specific deployment guide
-- [CUSTOMER_DEPLOYMENT.md](../docs/CUSTOMER_DEPLOYMENT.md) - Customer deployment guide
+- [Deployment Guide](../docs/DEPLOYMENT.md) - Pull and run Docker image
+- [API Reference](../docs/API.md) - Location update endpoints
+- [Troubleshooting](../docs/TROUBLESHOOTING.md) - Common issues
 
 
 
